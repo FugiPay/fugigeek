@@ -5,6 +5,7 @@ const dotenv     = require('dotenv');
 const rateLimit  = require('express-rate-limit');
 const { Server } = require('socket.io');
 const connectDB  = require('./config/db');
+const mongoose   = require('mongoose');
 
 dotenv.config();
 connectDB();
