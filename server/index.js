@@ -8,9 +8,17 @@ const connectDB  = require('./config/db');
 
 dotenv.config();
 connectDB();
-
+mongoose.connection.on('connected', () => {
+  console.log('Connected to DB:', mongoose.connection.db.databaseName);
+});
 const app    = express();
 const server = http.createServer(app);
+
+// Request logger
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path}`, req.body);
+  next();
+});
 
 // ── Socket.io ──────────────────────────────────────────────────────────────
 const io = new Server(server, {
@@ -22,7 +30,7 @@ io.on('connection', socket => {
   socket.on('join_room', room => socket.join(room));
   socket.on('disconnect', () => console.log('Socket disconnected:', socket.id));
 });
-
+ 
 // ── Core middleware ────────────────────────────────────────────────────────
 app.use(cors({ origin: process.env.CLIENT_URL, credentials: true }));
 // Stripe webhooks need raw body
@@ -47,5 +55,5 @@ app.get('/api/health', (_, res) => res.json({ status: 'ok', platform: 'Fugigeek'
 // ── Global error handler ──────────────────────────────────────────────────
 app.use(require('./middleware/errorHandler'));
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5002;
 server.listen(PORT, () => console.log(`Fugigeek server running on port ${PORT}`));
