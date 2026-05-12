@@ -37,7 +37,7 @@ export default function Home() {
     [fmt(statsData?.completedTasks), 'Tasks Completed'],
     [fmt(statsData?.professionals),  'Verified Professionals'],
     [fmt(statsData?.clients),        'Happy Clients'],
-    [statsData?.totalOrders > 0 ? '4.8/5' : '—', 'Average Rating'],
+    [statsData?.rating ?? '—',       'Average Rating'],
   ];
 
   return (

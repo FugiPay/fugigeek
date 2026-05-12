@@ -57,18 +57,24 @@ app.get('/api/health', (_, res) => res.json({ status: 'ok', platform: 'Fugigeek'
 // ── Platform stats (public) ───────────────────────────────────────────────
 app.get('/api/stats', async (_, res) => {
   try {
-    const User  = require('./models/User');
-    const Task  = require('./models/Task');
-    const Order = require('./models/Order');
+    const User   = require('./models/User');
+    const Task   = require('./models/Task');
+    const Order  = require('./models/Order');
+    const Review = require('./models/Review');
 
-    const [professionals, clients, completedTasks, totalOrders] = await Promise.all([
+    const [professionals, clients, completedTasks, totalOrders, avgRating] = await Promise.all([
       User.countDocuments({ role: 'professional', isActive: true }),
-      User.countDocuments({ role: { $in: ['business'] }, isActive: true }),
+      User.countDocuments({ role: 'business', isActive: true }),
       Task.countDocuments({ status: 'completed' }),
       Order.countDocuments({ status: 'completed' }),
+      Review.aggregate([{ $group: { _id: null, avg: { $avg: '$rating' } } }]),
     ]);
 
-    res.json({ success: true, stats: { professionals, clients, completedTasks, totalOrders } });
+    const rating = avgRating[0]?.avg
+      ? `${avgRating[0].avg.toFixed(1)}/5`
+      : null;
+
+    res.json({ success: true, stats: { professionals, clients, completedTasks, totalOrders, rating } });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
