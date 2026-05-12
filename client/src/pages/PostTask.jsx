@@ -17,7 +17,7 @@ const SKILLS = [
 
 export default function PostTask() {
   const navigate = useNavigate();
-  const { isBusiness } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [form, setForm] = useState({
     title: '', description: '', category: '', budgetType: 'fixed',
     budgetMin: '', budgetMax: '', currency: 'USD', deadline: '',
@@ -48,21 +48,18 @@ export default function PostTask() {
     } finally { setLoading(false); }
   };
 
-  if (!isBusiness) return (
+  if (!isAuthenticated) return (
     <div style={s.center}>
-      <p>Only business accounts can post tasks.</p>
-      <Link to="/register" style={s.btn}>Create a business account</Link>
+      <p>Please sign in to post a task.</p>
+      <Link to="/login" style={s.btn}>Sign in</Link>
     </div>
   );
 
   return (
     <div style={s.page}>
-      <nav style={s.nav}>
-        <div style={s.navInner}>
-          <Link to="/" style={s.logo}>Fugigeek</Link>
-          <Link to="/dashboard/business" style={{ fontSize: 14, color: '#374151' }}>← Dashboard</Link>
-        </div>
-      </nav>
+      <div style={{ padding: '12px 24px', background: '#fff', borderBottom: '1px solid #e5e7eb' }}>
+        <Link to="/dashboard/business" style={{ fontSize: 14, color: '#374151' }}>← Dashboard</Link>
+      </div>
 
       <div style={s.wrap}>
         <h1 style={s.title}>Post a new task</h1>

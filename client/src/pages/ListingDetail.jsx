@@ -39,12 +39,9 @@ export default function ListingDetail() {
   return (
     <div style={s.page}>
       {/* Top nav */}
-      <nav style={s.nav}>
-        <div style={s.navInner}>
-          <Link to="/" style={s.logo}>Fugigeek</Link>
-          <Link to="/listings" style={{ fontSize: 14, color: '#374151' }}>← Browse Tasks</Link>
-        </div>
-      </nav>
+      <div style={{ padding: '12px 24px', background: '#fff', borderBottom: '1px solid #e5e7eb' }}>
+        <Link to="/listings" style={{ fontSize: 14, color: '#374151' }}>← Browse Tasks</Link>
+      </div>
 
       <div style={s.layout}>
         {/* Main column */}

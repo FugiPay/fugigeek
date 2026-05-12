@@ -49,9 +49,30 @@ app.use('/api/orders',   require('./routes/orders'));
 app.use('/api/payments', require('./routes/payments'));
 app.use('/api/users',    require('./routes/users'));
 app.use('/api/reviews',  require('./routes/reviews'));
+app.use('/api/messages', require('./routes/messages'));
 
 // ── Health check ──────────────────────────────────────────────────────────
 app.get('/api/health', (_, res) => res.json({ status: 'ok', platform: 'Fugigeek' }));
+
+// ── Platform stats (public) ───────────────────────────────────────────────
+app.get('/api/stats', async (_, res) => {
+  try {
+    const User  = require('./models/User');
+    const Task  = require('./models/Task');
+    const Order = require('./models/Order');
+
+    const [professionals, clients, completedTasks, totalOrders] = await Promise.all([
+      User.countDocuments({ role: 'professional', isActive: true }),
+      User.countDocuments({ role: { $in: ['business'] }, isActive: true }),
+      Task.countDocuments({ status: 'completed' }),
+      Order.countDocuments({ status: 'completed' }),
+    ]);
+
+    res.json({ success: true, stats: { professionals, clients, completedTasks, totalOrders } });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
 
 // ── Global error handler ──────────────────────────────────────────────────
 app.use(require('./middleware/errorHandler'));

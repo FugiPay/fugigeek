@@ -10,7 +10,7 @@ const sendToken = (user, statusCode, res) => {
 
 // @POST /api/auth/register
 const register = asyncHandler(async (req, res) => {
-  const { name, email, password, role, businessProfile, professionalProfile } = req.body;
+  const { name, email, password, role, phone, businessProfile, professionalProfile } = req.body;
 
   if (!['business', 'professional'].includes(role)) {
     res.status(400); throw new Error('Role must be business or professional');
@@ -19,7 +19,7 @@ const register = asyncHandler(async (req, res) => {
     res.status(400); throw new Error('An account with this email already exists');
   }
 
-  const userData = { name, email, password, role };
+  const userData = { name, email, password, role, phone: phone || '' };
   if (role === 'business'     && businessProfile)     userData.businessProfile     = businessProfile;
   if (role === 'professional' && professionalProfile) userData.professionalProfile = professionalProfile;
 
@@ -51,7 +51,7 @@ const getMe = asyncHandler(async (req, res) => {
 
 // @PUT /api/auth/updateprofile
 const updateProfile = asyncHandler(async (req, res) => {
-  const allowed = ['name', 'avatar', 'businessProfile', 'professionalProfile'];
+  const allowed = ['name', 'avatar', 'phone', 'businessProfile', 'professionalProfile'];
   const updates = {};
   allowed.forEach(f => { if (req.body[f] !== undefined) updates[f] = req.body[f]; });
   const user = await User.findByIdAndUpdate(req.user._id, { $set: updates }, { new: true, runValidators: true });

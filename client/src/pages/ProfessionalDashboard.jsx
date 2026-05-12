@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import ordersAPI   from '../api/orders';
 import listingsAPI from '../api/listings';
 import { useAuth } from '../hooks/useAuth';
+import Sidebar     from '../components/common/Sidebar';
 
 const statusColor = s => ({
   open: '#16a34a', 'in-progress': '#2563eb', completed: '#6b7280',
@@ -14,9 +15,9 @@ const statusBg = s => ({
 }[s] || '#f3f4f6');
 
 export default function ProfessionalDashboard() {
-  const { user, logout } = useAuth();
-  const navigate         = useNavigate();
-  const qc               = useQueryClient();
+  const { user } = useAuth();
+  const navigate  = useNavigate();
+  const qc        = useQueryClient();
 
   const { data: ordersData } = useQuery('myOrders', () => ordersAPI.getAll().then(r => r.data));
   const orders = ordersData?.orders || [];
@@ -33,24 +34,7 @@ export default function ProfessionalDashboard() {
 
   return (
     <div style={s.page}>
-      {/* Sidebar */}
-      <aside style={s.sidebar}>
-        <div style={s.sideHeader}>
-          <div style={s.logo}>Fugigeek</div>
-          <div style={s.roleTag}>💼 Professional</div>
-        </div>
-        <nav style={s.sideNav}>
-          {[
-            ['📊', 'Overview',      '#'],
-            ['📋', 'My Orders',     '#orders'],
-            ['🔍', 'Browse Tasks',  '/listings'],
-            ['👤', 'My Profile',    '#profile'],
-          ].map(([icon, label, href]) => (
-            <a key={label} href={href} style={s.sideLink}>{icon} {label}</a>
-          ))}
-        </nav>
-        <button style={s.logoutBtn} onClick={logout}>Sign out</button>
-      </aside>
+      <Sidebar />
 
       {/* Main */}
       <main style={s.main}>

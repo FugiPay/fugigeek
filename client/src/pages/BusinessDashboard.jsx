@@ -3,6 +3,7 @@ import { useQuery } from 'react-query';
 import listingsAPI from '../api/listings';
 import ordersAPI   from '../api/orders';
 import { useAuth } from '../hooks/useAuth';
+import Sidebar     from '../components/common/Sidebar';
 
 const statusColor = s => ({
   open:            '#16a34a',
@@ -23,7 +24,7 @@ const statusBg = s => ({
 }[s] || '#f3f4f6');
 
 export default function BusinessDashboard() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   const { data: tasksData  } = useQuery('myTasks',  () => listingsAPI.getMyTasks().then(r => r.data));
@@ -39,26 +40,7 @@ export default function BusinessDashboard() {
 
   return (
     <div style={s.page}>
-      {/* Sidebar */}
-      <aside style={s.sidebar}>
-        <div style={s.sideHeader}>
-          <div style={s.logo}>Fugigeek</div>
-          <div style={s.roleTag}>🏢 Business</div>
-        </div>
-        <nav style={s.sideNav}>
-          {[
-            ['📊', 'Overview',      '#'],
-            ['📋', 'My Tasks',      '#tasks'],
-            ['📬', 'Orders',        '#orders'],
-            ['🔍', 'Find Pros',     '/users/professionals'],
-            ['➕', 'Post a Task',   '/tasks/new'],
-            ['👤', 'Profile',       '#profile'],
-          ].map(([icon, label, href]) => (
-            <a key={label} href={href} style={s.sideLink}>{icon} {label}</a>
-          ))}
-        </nav>
-        <button style={s.logoutBtn} onClick={logout}>Sign out</button>
-      </aside>
+      <Sidebar />
 
       {/* Main */}
       <main style={s.main}>

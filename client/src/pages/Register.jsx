@@ -9,7 +9,7 @@ export default function Register() {
   const { register, loading, error } = useAuth();
   const [step, setStep]       = useState(1);
   const [role, setRole]       = useState('');
-  const [form, setForm]       = useState({ name: '', email: '', password: '', confirm: '' });
+  const [form, setForm]       = useState({ name: '', email: '', password: '', confirm: '', phone: '' });
   const [profile, setProfile] = useState({});
   const [skills, setSkills]   = useState([]);
   const [fErr, setFErr]       = useState('');
@@ -23,7 +23,7 @@ export default function Register() {
     if (form.password !== form.confirm)  return setFErr('Passwords do not match');
     if (form.password.length < 8)        return setFErr('Password must be at least 8 characters');
     const payload = {
-      name: form.name, email: form.email, password: form.password, role,
+      name: form.name, email: form.email, password: form.password, role, phone: form.phone,
       ...(role === 'business'     && { businessProfile: profile }),
       ...(role === 'professional' && { professionalProfile: { ...profile, skills } }),
     };
@@ -74,6 +74,9 @@ export default function Register() {
 
             <label style={s.label}>Confirm password</label>
             <input style={s.input} name="confirm" type="password" placeholder="Repeat password" value={form.confirm} onChange={onForm} required />
+
+            <label style={s.label}>Phone number</label>
+            <input style={s.input} name="phone" type="tel" placeholder="+1 555 000 0000" value={form.phone} onChange={onForm} />
 
             {role === 'business' && (
               <>

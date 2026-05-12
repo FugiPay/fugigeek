@@ -25,13 +25,6 @@ export default function Professionals() {
 
   return (
     <div style={s.page}>
-      <nav style={s.nav}>
-        <div style={s.navInner}>
-          <Link to="/" style={s.logo}>Fugigeek</Link>
-          <Link to="/listings" style={{ fontSize: 14, color: '#374151' }}>Browse tasks</Link>
-        </div>
-      </nav>
-
       <div style={s.layout}>
         {/* Sidebar */}
         <aside style={s.sidebar}>

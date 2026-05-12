@@ -12,6 +12,7 @@ const userSchema = new mongoose.Schema(
     },
     password: { type: String, required: [true, 'Password is required'], minlength: 8, select: false },
     avatar:   { type: String, default: '' },
+    phone:    { type: String, trim: true, default: '' }, // shared across all roles
 
     // ── Role ────────────────────────────────────────────────────────────────
     // 'business'     → posts tasks, hires professionals
@@ -78,7 +79,7 @@ const userSchema = new mongoose.Schema(
 );
 
 // ── Indexes ──────────────────────────────────────────────────────────────────
-userSchema.index({ email: 1 });
+
 userSchema.index({ role: 1 });
 userSchema.index({ 'professionalProfile.skills': 1 });
 userSchema.index({ createdAt: -1 });

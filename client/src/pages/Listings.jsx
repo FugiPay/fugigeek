@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery } from 'react-query';
 import listingsAPI from '../api/listings';
+import { useAuth } from '../hooks/useAuth';
 
 const CATEGORIES = [
   'All','Web Development','Mobile Development','Design & Creative','Digital Marketing',
@@ -16,6 +17,7 @@ const statusBadge = s => ({
 }[s] || {});
 
 export default function Listings() {
+  const { isAuthenticated, isBusiness } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [search,   setSearch]   = useState('');
   const [category, setCategory] = useState(searchParams.get('category') || '');
@@ -32,14 +34,6 @@ export default function Listings() {
 
   return (
     <div style={s.page}>
-      {/* Header */}
-      <div style={s.header}>
-        <div style={s.headerInner}>
-          <Link to="/" style={s.logo}>Fugigeek</Link>
-          <Link to="/register" style={s.postBtn}>+ Post a Task</Link>
-        </div>
-      </div>
-
       <div style={s.layout}>
         {/* Sidebar filters */}
         <aside style={s.sidebar}>
