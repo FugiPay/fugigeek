@@ -15,13 +15,21 @@ const userSchema = new mongoose.Schema(
     phone:    { type: String, trim: true, default: '' }, // shared across all roles
 
     // ── Role ────────────────────────────────────────────────────────────────
-    // 'business'     → posts tasks, hires professionals
+    // 'individual'   → personal user, posts tasks, hires professionals
+    // 'business'     → company, posts tasks, hires professionals
     // 'professional' → applies to tasks, completes work
     // 'admin'        → platform management
     role: {
       type: String,
-      enum: ['business', 'professional', 'admin'],
+      enum: ['individual', 'business', 'professional', 'admin'],
       required: [true, 'Role is required'],
+    },
+
+    // ── Individual profile ────────────────────────────────────────────────────
+    individualProfile: {
+      occupation: { type: String, trim: true },
+      location:   { type: String, trim: true },
+      bio:        { type: String, maxlength: 1000 },
     },
 
     // ── Business profile ─────────────────────────────────────────────────────
@@ -41,7 +49,7 @@ const userSchema = new mongoose.Schema(
       bio:            { type: String, maxlength: 2000 },
       skills:         [{ type: String, trim: true }],
       hourlyRate:     { type: Number, min: 0 },
-      currency:       { type: String, default: 'USD' },
+      currency:       { type: String, default: 'ZMW' },
       availability:   {
         type: String,
         enum: ['full-time', 'part-time', 'weekends', 'contract'],

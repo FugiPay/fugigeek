@@ -2,41 +2,57 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 
 const NAV_ITEMS = {
-  business: [
-    { icon: '📊', label: 'Overview',        path: '/dashboard/business' },
-    { icon: '📋', label: 'My Tasks',        path: '/dashboard/business#tasks' },
-    { icon: '📦', label: 'Orders',          path: '/dashboard/business#orders' },
-    { icon: '➕', label: 'Post a Task',     path: '/tasks/new' },
+  individual: [
+    { icon: '📊', label: 'Overview',           path: '/dashboard/business' },
+    { icon: '📋', label: 'My Tasks',           path: '/dashboard/business#tasks' },
+    { icon: '📦', label: 'Orders',             path: '/dashboard/business#orders' },
+    { icon: '➕', label: 'Post a Task',        path: '/tasks/new' },
     { icon: '🔍', label: 'Find Professionals', path: '/users/professionals' },
-    { icon: '💬', label: 'Messages',        path: '/messages' },
-    { icon: '👤', label: 'Edit Profile',    path: '/profile/edit' },
+    { icon: '💬', label: 'Messages',           path: '/messages' },
+    { icon: '👁',  label: 'View Profile',      path: '/profile/view' },
+    { icon: '✏️', label: 'Edit Profile',       path: '/profile/edit' },
+  ],
+  business: [
+    { icon: '📊', label: 'Overview',           path: '/dashboard/business' },
+    { icon: '📋', label: 'My Tasks',           path: '/dashboard/business#tasks' },
+    { icon: '📦', label: 'Orders',             path: '/dashboard/business#orders' },
+    { icon: '➕', label: 'Post a Task',        path: '/tasks/new' },
+    { icon: '🔍', label: 'Find Professionals', path: '/users/professionals' },
+    { icon: '💬', label: 'Messages',           path: '/messages' },
+    { icon: '👁',  label: 'View Profile',      path: '/profile/view' },
+    { icon: '✏️', label: 'Edit Profile',       path: '/profile/edit' },
   ],
   professional: [
     { icon: '📊', label: 'Overview',        path: '/dashboard/professional' },
     { icon: '📦', label: 'My Orders',       path: '/dashboard/professional#orders' },
     { icon: '🔍', label: 'Browse Tasks',    path: '/listings' },
+    { icon: '➕', label: 'Post a Task',     path: '/tasks/new' },
     { icon: '💬', label: 'Messages',        path: '/messages' },
-    { icon: '👤', label: 'Edit Profile',    path: '/profile/edit' },
+    { icon: '👁',  label: 'View Profile',   path: '/profile/view' },
+    { icon: '✏️', label: 'Edit Profile',    path: '/profile/edit' },
   ],
   admin: [
-    { icon: '📊', label: 'Overview',        path: '/dashboard/admin' },
-    { icon: '👥', label: 'Users',           path: '/admin/users' },
-    { icon: '📋', label: 'Tasks',           path: '/listings' },
-    { icon: '💬', label: 'Messages',        path: '/messages' },
+    { icon: '📊', label: 'Dashboard',      path: '/dashboard/admin' },
+    { icon: '👥', label: 'Users',          path: '/dashboard/admin' },
+    { icon: '📋', label: 'Tasks',          path: '/listings' },
+    { icon: '📦', label: 'Orders',         path: '/dashboard/admin' },
+    { icon: '💬', label: 'Messages',       path: '/messages' },
+    { icon: '⚙️', label: 'Settings',       path: '/dashboard/admin' },
   ],
 };
 
 export default function Sidebar() {
-  const { user, logout, isBusiness, isProfessional, isAdmin } = useAuth();
+  const { user, logout, isBusiness, isIndividual, isProfessional, isAdmin } = useAuth();
   const location = useLocation();
 
-  const role  = isAdmin ? 'admin' : isBusiness ? 'business' : 'professional';
+  const role  = isAdmin ? 'admin' : isBusiness ? 'business' : isIndividual ? 'individual' : 'professional';
   const items = NAV_ITEMS[role] || [];
 
   const roleTag = {
-    business:     { label: '🏢 Business',     bg: '#eff6ff', color: '#2563eb' },
-    professional: { label: '💼 Professional', bg: '#f0fdf4', color: '#15803d' },
-    admin:        { label: '⚙️ Admin',         bg: '#fef3c7', color: '#b45309' },
+    individual:   { label: '👤 Individual',    bg: '#f3f4f6', color: '#374151' },
+    business:     { label: '🏢 Business',      bg: '#eff6ff', color: '#2563eb' },
+    professional: { label: '💼 Professional',  bg: '#f0fdf4', color: '#15803d' },
+    admin:        { label: '⚙️ Admin',          bg: '#fef3c7', color: '#b45309' },
   }[role];
 
   const isActive = path => location.pathname === path.split('#')[0];
@@ -59,6 +75,8 @@ export default function Sidebar() {
           <div style={s.userSub}>
             {isBusiness
               ? user?.businessProfile?.companyName
+              : isIndividual
+              ? user?.individualProfile?.occupation || user?.email
               : user?.professionalProfile?.headline || user?.email}
           </div>
         </div>

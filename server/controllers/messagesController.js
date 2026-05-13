@@ -1,5 +1,7 @@
 const { Conversation, Message } = require('../models/Message');
+const User                      = require('../models/User');
 const asyncHandler              = require('../utils/asyncHandler');
+const email                     = require('../utils/email');
 
 // ── @GET /api/messages/conversations ─────────────────────────────────────────
 // Get all conversations for the current user
@@ -115,6 +117,17 @@ const sendMessage = asyncHandler(async (req, res) => {
     io.to(recipient.toString()).emit('new_message', {
       conversationId: req.params.id,
       message,
+    });
+  }
+
+  // Email recipient (only if they haven't been active recently)
+  const recipientUser = await User.findById(recipient).select('name email lastSeen');
+  const fiveMinAgo    = Date.now() - 5 * 60 * 1000;
+  if (recipientUser && new Date(recipientUser.lastSeen) < fiveMinAgo) {
+    email.sendNewMessage(recipientUser.email, {
+      recipientName:  recipientUser.name,
+      senderName:     req.user.name,
+      conversationId: req.params.id,
     });
   }
 

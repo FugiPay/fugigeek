@@ -43,13 +43,15 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api', rateLimit({ windowMs: 15 * 60 * 1000, max: 100 }));
 
 // ── Routes ────────────────────────────────────────────────────────────────
-app.use('/api/auth',     require('./routes/auth'));
-app.use('/api/listings', require('./routes/listings'));
-app.use('/api/orders',   require('./routes/orders'));
-app.use('/api/payments', require('./routes/payments'));
-app.use('/api/users',    require('./routes/users'));
-app.use('/api/reviews',  require('./routes/reviews'));
-app.use('/api/messages', require('./routes/messages'));
+app.use('/api/auth',          require('./routes/auth'));
+app.use('/api/admin',         require('./routes/admin'));
+app.use('/api/listings',      require('./routes/listings'));
+app.use('/api/orders',        require('./routes/orders'));
+app.use('/api/payments',      require('./routes/payments'));
+app.use('/api/users',         require('./routes/users'));
+app.use('/api/reviews',       require('./routes/reviews'));
+app.use('/api/messages',      require('./routes/messages'));
+app.use('/api/notifications', require('./routes/notifications'));
 
 // ── Health check ──────────────────────────────────────────────────────────
 app.get('/api/health', (_, res) => res.json({ status: 'ok', platform: 'Fugigeek' }));
@@ -64,7 +66,7 @@ app.get('/api/stats', async (_, res) => {
 
     const [professionals, clients, completedTasks, totalOrders, avgRating] = await Promise.all([
       User.countDocuments({ role: 'professional', isActive: true }),
-      User.countDocuments({ role: 'business', isActive: true }),
+      User.countDocuments({ role: { $in: ['business', 'individual'] }, isActive: true }),
       Task.countDocuments({ status: 'completed' }),
       Order.countDocuments({ status: 'completed' }),
       Review.aggregate([{ $group: { _id: null, avg: { $avg: '$rating' } } }]),

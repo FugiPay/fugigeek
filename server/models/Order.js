@@ -3,25 +3,36 @@ const mongoose = require('mongoose');
 const orderSchema = new mongoose.Schema(
   {
     task:         { type: mongoose.Schema.Types.ObjectId, ref: 'Task',     required: true },
-    business:     { type: mongoose.Schema.Types.ObjectId, ref: 'User',     required: true },
+    client:       { type: mongoose.Schema.Types.ObjectId, ref: 'User',     required: true }, // renamed from business
     professional: { type: mongoose.Schema.Types.ObjectId, ref: 'User',     required: true },
     proposal:     { type: mongoose.Schema.Types.ObjectId, ref: 'Proposal', required: true },
 
-    // ── Financials ───────────────────────────────────────────────────────────
-    amount:       { type: Number, required: true, min: 0 },
-    currency:     { type: String, default: 'USD' },
-    platformFee:  { type: Number, default: 0 },   // e.g. 10% of amount
-    netPayout:    { type: Number, default: 0 },   // amount - platformFee
+    // ── Agreed amount ─────────────────────────────────────────────────────────
+    amount:   { type: Number, default: 0 },
+    currency: { type: String, default: 'ZMW' },
 
-    // ── Stripe ───────────────────────────────────────────────────────────────
-    stripePaymentIntentId: { type: String },
-    stripeTransferId:      { type: String },
+    // ── Payment (DPO by Network) ──────────────────────────────────────────────
+    payment: {
+      status:       { type: String, enum: ['unpaid', 'pending', 'paid', 'failed', 'refunded'], default: 'unpaid' },
+      dpoToken:     String,   // DPO TransToken returned when creating transaction
+      dpoRef:       String,   // DPO transaction reference after payment
+      transRef:     String,   // our internal reference
+      paidAt:       Date,
+      failureReason: String,
+    },
 
     // ── Status lifecycle ──────────────────────────────────────────────────────
-    // pending_payment → active → submitted → completed | disputed | refunded
+    // pending_payment → active → submitted → verified | disputed | cancelled
+    // 'pending_payment' → order created, awaiting DPO payment
+    // 'active'          → payment confirmed, work in progress
+    // 'submitted'       → professional submitted deliverables for review
+    // 'verified'        → client confirmed work is done
+    // 'disputed'        → client raised an issue
+    // 'withdrawn'       → client withdrew before completion
+    // 'cancelled'       → cancelled by either party or admin
     status: {
       type:    String,
-      enum:    ['pending_payment', 'active', 'submitted', 'completed', 'disputed', 'refunded', 'cancelled'],
+      enum:    ['pending_payment', 'active', 'submitted', 'verified', 'disputed', 'withdrawn', 'cancelled'],
       default: 'pending_payment',
     },
 
@@ -30,16 +41,20 @@ const orderSchema = new mongoose.Schema(
       title:       String,
       description: String,
       dueDate:     Date,
-      amount:      Number,
-      status:      { type: String, enum: ['pending', 'completed', 'approved'], default: 'pending' },
+      status:      { type: String, enum: ['pending', 'submitted', 'verified'], default: 'pending' },
     }],
 
-    // ── Deliverables ──────────────────────────────────────────────────────────
+    // ── Deliverables submitted by professional ────────────────────────────────
     deliverables: [{
       url:          String,
       originalName: String,
+      description:  String,
       uploadedAt:   { type: Date, default: Date.now },
     }],
+
+    // ── Verification ─────────────────────────────────────────────────────────
+    verifiedAt:        Date,
+    verificationNotes: { type: String, maxlength: 1000 }, // client's sign-off note
 
     // ── Dates ─────────────────────────────────────────────────────────────────
     deadline:     Date,
@@ -47,13 +62,14 @@ const orderSchema = new mongoose.Schema(
     completedAt:  Date,
 
     // ── Notes ─────────────────────────────────────────────────────────────────
-    businessNotes:     { type: String, maxlength: 1000 },
+    clientNotes:       { type: String, maxlength: 1000 },
     professionalNotes: { type: String, maxlength: 1000 },
+    disputeReason:     { type: String, maxlength: 1000 },
   },
   { timestamps: true }
 );
 
-orderSchema.index({ business: 1, status: 1 });
+orderSchema.index({ client: 1, status: 1 });
 orderSchema.index({ professional: 1, status: 1 });
 orderSchema.index({ task: 1 });
 

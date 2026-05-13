@@ -31,6 +31,43 @@ button { font-family: inherit; }
 
 .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
 
+/* ── Mobile responsive helpers ──────────────────────────────────────────── */
+@media (max-width: 768px) {
+  /* Hide desktop nav links in Navbar on mobile */
+  .nav-links-desktop { display: none !important; }
+
+  /* Stack sidebar layouts on mobile */
+  .layout-with-sidebar {
+    flex-direction: column !important;
+  }
+  .layout-sidebar {
+    width: 100% !important;
+    border-right: none !important;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  /* Full-width grids on mobile */
+  .grid-auto { grid-template-columns: 1fr !important; }
+
+  /* Dashboard stats — 2 columns on mobile */
+  .stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
+
+  /* Show hamburger */
+  .hamburger { display: flex !important; }
+
+  /* Reduce padding on mobile */
+  .mobile-pad { padding: 16px !important; }
+
+  /* Hide table columns on mobile */
+  .hide-mobile { display: none !important; }
+}
+
+@media (max-width: 480px) {
+  .stats-grid { grid-template-columns: 1fr 1fr !important; }
+  .hero-title  { font-size: 28px !important; }
+  .hero-btns   { flex-direction: column !important; }
+}
+
 /* Utility badges */
 .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; }
 .badge-blue    { background: #dbeafe; color: #1d4ed8; }

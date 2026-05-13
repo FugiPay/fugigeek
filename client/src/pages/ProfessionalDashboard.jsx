@@ -53,7 +53,7 @@ export default function ProfessionalDashboard() {
             ['Active orders',    activeOrders,    '#2563eb'],
             ['Submitted',        submittedOrders, '#7c3aed'],
             ['Completed',        completedOrders, '#16a34a'],
-            ['Total earned',     `$${totalEarned.toLocaleString()}`, '#d97706'],
+            ['Total earned',     `K${totalEarned.toLocaleString()}`, '#d97706'],
           ].map(([label, val, color]) => (
             <div key={label} style={s.statCard}>
               <div style={{ ...s.statNum, color }}>{val}</div>
@@ -99,13 +99,13 @@ export default function ProfessionalDashboard() {
                     <span style={{ ...s.statusBadge, background: statusBg(order.status), color: statusColor(order.status) }}>
                       {order.status.replace('_', ' ')}
                     </span>
-                    <span style={{ fontSize: 14, fontWeight: 600, color: '#16a34a' }}>${order.amount}</span>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: '#16a34a' }}>K{order.amount}</span>
                   </div>
 
                   <div style={s.orderTitle}>{order.task?.title}</div>
                   <div style={s.orderMeta}>{order.task?.category}</div>
                   <div style={s.orderMeta}>
-                    Client: <strong>{order.business?.businessProfile?.companyName || order.business?.name}</strong>
+                    Client: <strong>{order.client?.businessProfile?.companyName || order.client?.individualProfile?.occupation || order.client?.name}</strong>
                   </div>
                   {order.deadline && (
                     <div style={{ ...s.orderMeta, color: new Date(order.deadline) < new Date() ? '#dc2626' : '#6b7280' }}>

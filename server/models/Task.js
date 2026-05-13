@@ -5,7 +5,8 @@ const taskSchema = new mongoose.Schema(
     // ── Core ────────────────────────────────────────────────────────────────
     title:       { type: String, required: [true, 'Title is required'], trim: true, maxlength: 150 },
     description: { type: String, required: [true, 'Description is required'], maxlength: 5000 },
-    business:    { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    // postedBy supports individual, business, or professional posting a task
+    postedBy:    { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
 
     // ── Categorisation ───────────────────────────────────────────────────────
     category: {
@@ -28,7 +29,7 @@ const taskSchema = new mongoose.Schema(
     budgetType:   { type: String, enum: ['fixed', 'hourly'], required: true },
     budgetMin:    { type: Number, min: 0 },
     budgetMax:    { type: Number, min: 0 },
-    currency:     { type: String, default: 'USD' },
+    currency:     { type: String, default: 'ZMW' },
     deadline:     { type: Date },
     duration:     {
       type: String,
@@ -74,7 +75,7 @@ const taskSchema = new mongoose.Schema(
 );
 
 // ── Indexes ──────────────────────────────────────────────────────────────────
-taskSchema.index({ business: 1 });
+taskSchema.index({ postedBy: 1 });
 taskSchema.index({ status: 1 });
 taskSchema.index({ category: 1 });
 taskSchema.index({ skillsRequired: 1 });

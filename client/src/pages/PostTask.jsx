@@ -17,10 +17,13 @@ const SKILLS = [
 
 export default function PostTask() {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+  const dashPath = user?.role === 'professional'
+    ? '/dashboard/professional'
+    : '/dashboard/business';
   const [form, setForm] = useState({
     title: '', description: '', category: '', budgetType: 'fixed',
-    budgetMin: '', budgetMax: '', currency: 'USD', deadline: '',
+    budgetMin: '', budgetMax: '', currency: 'ZMW', deadline: '',
     duration: '', locationType: 'remote', location: '',
   });
   const [skills,   setSkills]   = useState([]);
@@ -58,7 +61,7 @@ export default function PostTask() {
   return (
     <div style={s.page}>
       <div style={{ padding: '12px 24px', background: '#fff', borderBottom: '1px solid #e5e7eb' }}>
-        <Link to="/dashboard/business" style={{ fontSize: 14, color: '#374151' }}>← Dashboard</Link>
+        <Link to={dashPath} style={{ fontSize: 14, color: '#374151' }}>← Dashboard</Link>
       </div>
 
       <div style={s.wrap}>
@@ -120,12 +123,12 @@ export default function PostTask() {
 
             <div style={s.row}>
               <div style={{ flex: 1 }}>
-                <label style={s.label}>Min budget (USD)</label>
+                <label style={s.label}>Min budget (ZMW)</label>
                 <input style={s.input} name="budgetMin" type="number" min="0" placeholder="e.g. 200"
                   value={form.budgetMin} onChange={onChange} />
               </div>
               <div style={{ flex: 1 }}>
-                <label style={s.label}>Max budget (USD)</label>
+                <label style={s.label}>Max budget (ZMW)</label>
                 <input style={s.input} name="budgetMax" type="number" min="0" placeholder="e.g. 1000"
                   value={form.budgetMax} onChange={onChange} />
               </div>

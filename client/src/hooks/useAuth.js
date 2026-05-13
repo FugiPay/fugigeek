@@ -13,7 +13,10 @@ export const useAuth = () => {
     try {
       const { data } = await authAPI.register(formData);
       dispatch(setCredentials({ user: data.user, token: data.token }));
-      navigate(data.user.role === 'business' ? '/dashboard/business' : '/dashboard/professional');
+      const role = data.user.role;
+      if (role === 'admin')                              navigate('/dashboard/admin');
+      else if (role === 'business' || role === 'individual') navigate('/dashboard/business');
+      else navigate('/dashboard/professional');
     } catch (err) {
       dispatch(setError(err.response?.data?.message || 'Registration failed'));
     } finally { dispatch(setLoading(false)); }
@@ -24,7 +27,10 @@ export const useAuth = () => {
     try {
       const { data } = await authAPI.login(formData);
       dispatch(setCredentials({ user: data.user, token: data.token }));
-      navigate(data.user.role === 'business' ? '/dashboard/business' : '/dashboard/professional');
+      const role = data.user.role;
+      if (role === 'admin')                              navigate('/dashboard/admin');
+      else if (role === 'business' || role === 'individual') navigate('/dashboard/business');
+      else navigate('/dashboard/professional');
     } catch (err) {
       dispatch(setError(err.response?.data?.message || 'Login failed'));
     } finally { dispatch(setLoading(false)); }
@@ -47,8 +53,10 @@ export const useAuth = () => {
     user, token, loading, error,
     register, login, logout, updateProfile,
     isAuthenticated: !!token,
+    isIndividual:    user?.role === 'individual',
     isBusiness:      user?.role === 'business',
     isProfessional:  user?.role === 'professional',
     isAdmin:         user?.role === 'admin',
+    canPost:         ['individual', 'business', 'admin'].includes(user?.role),
   };
 };

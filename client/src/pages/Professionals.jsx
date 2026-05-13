@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from 'react-query';
 import usersAPI from '../api/users';
+import { SkeletonGrid, ProCardSkeleton, EmptyState } from '../components/common/Skeletons';
 
 const SKILLS = [
   'Web Development','Mobile Development','Design & Creative','Digital Marketing',
@@ -64,7 +65,15 @@ export default function Professionals() {
             </span>
           </div>
 
-          {isLoading && <div style={s.loading}>Loading professionals…</div>}
+          {isLoading && <SkeletonGrid count={6} Card={ProCardSkeleton} />}
+
+          {!isLoading && data?.professionals?.length === 0 && (
+            <EmptyState
+              icon="🔍"
+              title="No professionals found"
+              message="Try adjusting your filters. More professionals join Fugigeek every day."
+            />
+          )}
 
           <div style={s.grid}>
             {data?.professionals?.map(pro => (
@@ -100,7 +109,7 @@ export default function Professionals() {
 
                 <div style={s.footer}>
                   {pro.professionalProfile?.hourlyRate && (
-                    <span style={s.rate}>${pro.professionalProfile.hourlyRate}/hr</span>
+                    <span style={s.rate}>K{pro.professionalProfile.hourlyRate}/hr</span>
                   )}
                   {pro.professionalProfile?.availability && (
                     <span style={s.avail}>{pro.professionalProfile.availability}</span>

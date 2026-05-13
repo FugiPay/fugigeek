@@ -99,7 +99,7 @@ export default function BusinessDashboard() {
                         </Link>
                       </td>
                       <td style={s.td}><span style={s.catBadge}>{task.category}</span></td>
-                      <td style={s.td}>{task.budgetMax ? `$${task.budgetMax}` : '—'}</td>
+                      <td style={s.td}>{task.budgetMax ? `K${task.budgetMax}` : '—'}</td>
                       <td style={s.td}>{task.proposalCount}</td>
                       <td style={s.td}>
                         <span style={{ ...s.statusBadge, background: statusBg(task.status), color: statusColor(task.status) }}>
@@ -133,7 +133,7 @@ export default function BusinessDashboard() {
                     <span style={{ ...s.statusBadge, background: statusBg(order.status), color: statusColor(order.status) }}>
                       {order.status.replace('_', ' ')}
                     </span>
-                    <span style={{ fontSize: 13, color: '#6b7280' }}>${order.amount}</span>
+                    <span style={{ fontSize: 13, color: '#6b7280' }}>K{order.amount}</span>
                   </div>
                   <div style={s.orderTitle}>{order.task?.title}</div>
                   <div style={s.orderMeta}>

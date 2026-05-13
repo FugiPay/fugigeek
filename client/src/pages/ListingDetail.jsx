@@ -33,7 +33,7 @@ export default function ListingDetail() {
   if (isLoading) return <div style={s.center}>Loading task…</div>;
   if (!task)     return <div style={s.center}>Task not found.</div>;
 
-  const isOwner    = user?._id === task.business?._id;
+  const isOwner    = user?._id === task.postedBy?._id;
   const canPropose = isProfessional && task.status === 'open' && !isOwner;
 
   return (
@@ -57,7 +57,7 @@ export default function ListingDetail() {
 
           {/* Meta row */}
           <div style={s.meta}>
-            {task.budgetMax  && <span>💰 Budget: up to ${task.budgetMax} ({task.budgetType})</span>}
+            {task.budgetMax  && <span>💰 Budget: up to K{task.budgetMax} ({task.budgetType})</span>}
             {task.deadline   && <span>📅 Deadline: {new Date(task.deadline).toLocaleDateString()}</span>}
             {task.duration   && <span>⏱ Duration: {task.duration}</span>}
             <span>👁 {task.views} views</span>
@@ -116,7 +116,7 @@ export default function ListingDetail() {
                     <div style={{ flex: 1 }}>
                       <label style={s.label}>Your bid ({task.budgetType})</label>
                       <div style={s.inputPrefix}>
-                        <span style={s.prefix}>$</span>
+                        <span style={s.prefix}>K</span>
                         <input style={{ ...s.input, paddingLeft: 28 }} name="bidAmount" type="number" min="1"
                           placeholder="e.g. 500" value={proposal.bidAmount} onChange={onProposalChange} required />
                       </div>
@@ -160,26 +160,26 @@ export default function ListingDetail() {
           <div style={s.sideCard}>
             <h3 style={s.sideTitle}>Posted by</h3>
             <div style={s.bizRow}>
-              <div style={s.bizAvatar}>{task.business?.name?.[0]}</div>
+              <div style={s.bizAvatar}>{task.postedBy?.name?.[0]}</div>
               <div>
-                <div style={{ fontWeight: 600, fontSize: 14 }}>{task.business?.businessProfile?.companyName || task.business?.name}</div>
-                <div style={{ fontSize: 12, color: '#6b7280' }}>{task.business?.businessProfile?.industry}</div>
+                <div style={{ fontWeight: 600, fontSize: 14 }}>{task.postedBy?.businessProfile?.companyName || task.postedBy?.name}</div>
+                <div style={{ fontSize: 12, color: '#6b7280' }}>{task.postedBy?.businessProfile?.industry}</div>
               </div>
             </div>
-            {task.business?.stats?.rating > 0 && (
+            {task.postedBy?.stats?.rating > 0 && (
               <div style={{ fontSize: 13, color: '#6b7280', marginTop: 8 }}>
-                ⭐ {task.business.stats.rating} · {task.business.stats.reviewCount} reviews
+                ⭐ {task.postedBy.stats.rating} · {task.postedBy.stats.reviewCount} reviews
               </div>
             )}
             <div style={{ fontSize: 13, color: '#6b7280', marginTop: 4 }}>
-              ✅ {task.business?.stats?.completedTasks || 0} tasks completed
+              ✅ {task.postedBy?.stats?.completedTasks || 0} tasks completed
             </div>
           </div>
 
           {/* Task summary */}
           <div style={s.sideCard}>
             <h3 style={s.sideTitle}>Task summary</h3>
-            <div style={s.summaryRow}><span>Budget</span><strong>Up to ${task.budgetMax || '—'}</strong></div>
+            <div style={s.summaryRow}><span>Budget</span><strong>Up to K{task.budgetMax || '—'}</strong></div>
             <div style={s.summaryRow}><span>Type</span><strong>{task.budgetType}</strong></div>
             <div style={s.summaryRow}><span>Duration</span><strong>{task.duration || '—'}</strong></div>
             <div style={s.summaryRow}><span>Location</span><strong>{task.locationType}</strong></div>

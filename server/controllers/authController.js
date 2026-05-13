@@ -2,6 +2,7 @@ const crypto        = require('crypto');
 const User          = require('../models/User');
 const generateToken = require('../utils/generateToken');
 const asyncHandler  = require('../utils/asyncHandler');
+const email         = require('../utils/email');
 
 const sendToken = (user, statusCode, res) => {
   const token = generateToken(user._id);
@@ -12,18 +13,20 @@ const sendToken = (user, statusCode, res) => {
 const register = asyncHandler(async (req, res) => {
   const { name, email, password, role, phone, businessProfile, professionalProfile } = req.body;
 
-  if (!['business', 'professional'].includes(role)) {
-    res.status(400); throw new Error('Role must be business or professional');
+  if (!['individual', 'business', 'professional'].includes(role)) {
+    res.status(400); throw new Error('Role must be individual, business or professional');
   }
   if (await User.findOne({ email })) {
     res.status(400); throw new Error('An account with this email already exists');
   }
 
   const userData = { name, email, password, role, phone: phone || '' };
-  if (role === 'business'     && businessProfile)     userData.businessProfile     = businessProfile;
-  if (role === 'professional' && professionalProfile) userData.professionalProfile = professionalProfile;
+  if (role === 'individual'   && req.body.individualProfile)   userData.individualProfile   = req.body.individualProfile;
+  if (role === 'business'     && businessProfile)              userData.businessProfile     = businessProfile;
+  if (role === 'professional' && professionalProfile)          userData.professionalProfile = professionalProfile;
 
   const user = await User.create(userData);
+  email.sendWelcome(user.email, { name: user.name, role: user.role });
   sendToken(user, 201, res);
 });
 
@@ -51,7 +54,7 @@ const getMe = asyncHandler(async (req, res) => {
 
 // @PUT /api/auth/updateprofile
 const updateProfile = asyncHandler(async (req, res) => {
-  const allowed = ['name', 'avatar', 'phone', 'businessProfile', 'professionalProfile'];
+  const allowed = ['name', 'avatar', 'phone', 'individualProfile', 'businessProfile', 'professionalProfile'];
   const updates = {};
   allowed.forEach(f => { if (req.body[f] !== undefined) updates[f] = req.body[f]; });
   const user = await User.findByIdAndUpdate(req.user._id, { $set: updates }, { new: true, runValidators: true });
@@ -78,7 +81,8 @@ const forgotPassword = asyncHandler(async (req, res) => {
     user.resetPasswordToken  = crypto.createHash('sha256').update(token).digest('hex');
     user.resetPasswordExpire = Date.now() + 30 * 60 * 1000;
     await user.save({ validateBeforeSave: false });
-    // TODO: email user `${process.env.CLIENT_URL}/reset-password/${token}`
+    const resetUrl = `${process.env.CLIENT_URL}/reset-password/${token}`;
+    email.sendPasswordReset(user.email, { name: user.name, resetUrl });
   }
   res.json({ success: true, message: 'If that email exists, a reset link has been sent.' });
 });

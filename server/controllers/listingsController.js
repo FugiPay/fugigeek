@@ -1,7 +1,10 @@
 const Task              = require('../models/Task');
 const Proposal          = require('../models/Proposal');
+const User              = require('../models/User');
 const asyncHandler      = require('../utils/asyncHandler');
 const { deleteFromS3 }  = require('../config/s3');
+const email             = require('../utils/email');
+const notify            = require('../utils/notify');
 
 // @GET /api/listings  — public, filterable, paginated
 const getTasks = asyncHandler(async (req, res) => {
@@ -22,7 +25,7 @@ const getTasks = asyncHandler(async (req, res) => {
   const skip  = (Number(page) - 1) * Number(limit);
   const total = await Task.countDocuments(query);
   const tasks = await Task.find(query)
-    .populate('business', 'name avatar businessProfile.companyName businessProfile.verified stats.rating')
+    .populate('postedBy', 'name avatar businessProfile.companyName businessProfile.verified stats.rating')
     .sort(sort)
     .skip(skip)
     .limit(Number(limit));
@@ -33,7 +36,7 @@ const getTasks = asyncHandler(async (req, res) => {
 // @GET /api/listings/:id  — public
 const getTask = asyncHandler(async (req, res) => {
   const task = await Task.findById(req.params.id)
-    .populate('business',   'name avatar businessProfile stats')
+    .populate('postedBy',   'name avatar businessProfile stats')
     .populate('assignedTo', 'name avatar professionalProfile.headline stats');
   if (!task) { res.status(404); throw new Error('Task not found'); }
 
@@ -44,7 +47,7 @@ const getTask = asyncHandler(async (req, res) => {
 
 // @POST /api/listings  — business only
 const createTask = asyncHandler(async (req, res) => {
-  req.body.business = req.user._id;
+  req.body.postedBy = req.user._id;
   const task = await Task.create(req.body);
   res.status(201).json({ success: true, task });
 });
@@ -53,7 +56,7 @@ const createTask = asyncHandler(async (req, res) => {
 const updateTask = asyncHandler(async (req, res) => {
   let task = await Task.findById(req.params.id);
   if (!task) { res.status(404); throw new Error('Task not found'); }
-  if (task.business.toString() !== req.user._id.toString()) {
+  if (task.postedBy.toString() !== req.user._id.toString()) {
     res.status(403); throw new Error('Not authorised to edit this task');
   }
   task = await Task.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
@@ -64,7 +67,7 @@ const updateTask = asyncHandler(async (req, res) => {
 const deleteTask = asyncHandler(async (req, res) => {
   const task = await Task.findById(req.params.id);
   if (!task) { res.status(404); throw new Error('Task not found'); }
-  if (task.business.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+  if (task.postedBy.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
     res.status(403); throw new Error('Not authorised to delete this task');
   }
   // Remove attachments from S3
@@ -79,7 +82,7 @@ const deleteTask = asyncHandler(async (req, res) => {
 const uploadAttachments = asyncHandler(async (req, res) => {
   const task = await Task.findById(req.params.id);
   if (!task) { res.status(404); throw new Error('Task not found'); }
-  if (task.business.toString() !== req.user._id.toString()) {
+  if (task.postedBy.toString() !== req.user._id.toString()) {
     res.status(403); throw new Error('Not authorised');
   }
   const files = req.files.map(f => ({
@@ -96,7 +99,7 @@ const uploadAttachments = asyncHandler(async (req, res) => {
 const getProposals = asyncHandler(async (req, res) => {
   const task = await Task.findById(req.params.id);
   if (!task) { res.status(404); throw new Error('Task not found'); }
-  if (task.business.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+  if (task.postedBy.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
     res.status(403); throw new Error('Not authorised');
   }
   const proposals = await Proposal.find({ task: req.params.id })
@@ -125,9 +128,29 @@ const submitProposal = asyncHandler(async (req, res) => {
   task.proposalCount += 1;
   await task.save({ validateBeforeSave: false });
 
-  // Notify business via socket
+  // Notify task poster via socket and email
   const io = req.app.get('io');
-  if (io) io.to(task.business.toString()).emit('new_proposal', { taskId: task._id, proposalId: proposal._id });
+  if (io) io.to(task.postedBy.toString()).emit('new_proposal', { taskId: task._id, proposalId: proposal._id });
+
+  // Email the poster
+  const poster = await User.findById(task.postedBy).select('name email');
+  if (poster) {
+    email.sendNewProposal(poster.email, {
+      posterName:       poster.name,
+      professionalName: req.user.name,
+      taskTitle:        task.title,
+      taskId:           task._id,
+    });
+  }
+
+  // In-app notification
+  notify(io, {
+    recipient: task.postedBy,
+    type:      'new_proposal',
+    title:     'New proposal received',
+    body:      `${req.user.name} submitted a proposal on "${task.title}"`,
+    link:      `/listings/${task._id}/proposals`,
+  });
 
   res.status(201).json({ success: true, proposal });
 });
@@ -137,7 +160,7 @@ const acceptProposal = asyncHandler(async (req, res) => {
   const task     = await Task.findById(req.params.taskId);
   const proposal = await Proposal.findById(req.params.proposalId);
   if (!task || !proposal) { res.status(404); throw new Error('Task or proposal not found'); }
-  if (task.business.toString() !== req.user._id.toString()) {
+  if (task.postedBy.toString() !== req.user._id.toString()) {
     res.status(403); throw new Error('Not authorised');
   }
 
@@ -156,7 +179,7 @@ const acceptProposal = asyncHandler(async (req, res) => {
 
 // @GET /api/listings/my/tasks  — business sees their posted tasks
 const getMyTasks = asyncHandler(async (req, res) => {
-  const tasks = await Task.find({ business: req.user._id }).sort('-createdAt');
+  const tasks = await Task.find({ postedBy: req.user._id }).sort('-createdAt');
   res.json({ success: true, tasks });
 });
 

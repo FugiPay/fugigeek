@@ -1,11 +1,19 @@
 const express = require('express');
 const router  = express.Router();
 const { protect } = require('../middleware/auth');
-const { createPaymentIntent, stripeWebhook, getPaymentHistory } = require('../controllers/paymentsController');
+const {
+  createPayment,
+  verifyPayment,
+  cancelPayment,
+  getPaymentHistory,
+} = require('../controllers/paymentsController');
 
-// Webhook must come before express.json() — raw body required
-router.post('/webhook',        stripeWebhook);
-router.post('/create-intent',  protect, createPaymentIntent);
-router.get( '/history',        protect, getPaymentHistory);
+// DPO redirects to /verify and /cancel — no auth header, verified via CompanyRef
+router.get( '/verify',  verifyPayment);
+router.get( '/cancel',  cancelPayment);
+
+// Protected
+router.post('/create',  protect, createPayment);
+router.get( '/history', protect, getPaymentHistory);
 
 module.exports = router;

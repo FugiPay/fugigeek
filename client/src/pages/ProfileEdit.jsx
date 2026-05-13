@@ -95,7 +95,7 @@ export default function ProfileEdit() {
 
             <label style={s.label}>Phone number</label>
             <input style={s.input} name="phone" type="tel" value={form.phone} onChange={onChange}
-              placeholder="+1 555 000 0000" />
+              placeholder="+260 97 000 0000" />
             <p style={{ fontSize: 12, color: '#9ca3af', marginTop: 4 }}>
               Visible to logged-in users on your public profile so clients can call you directly.
             </p>
@@ -153,9 +153,9 @@ export default function ProfileEdit() {
 
                 <div style={s.row}>
                   <div style={{ flex: 1 }}>
-                    <label style={s.label}>Hourly rate (USD)</label>
+                    <label style={s.label}>Hourly rate (ZMW)</label>
                     <input style={s.input} name="hourlyRate" type="number" min="0"
-                      value={form.hourlyRate} onChange={onChange} placeholder="e.g. 75" />
+                      value={form.hourlyRate} onChange={onChange} placeholder="e.g. 500" />
                   </div>
                   <div style={{ flex: 1 }}>
                     <label style={s.label}>Availability</label>

@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery } from 'react-query';
 import listingsAPI from '../api/listings';
 import { useAuth } from '../hooks/useAuth';
+import { SkeletonGrid, EmptyState } from '../components/common/Skeletons';
 
 const CATEGORIES = [
   'All','Web Development','Mobile Development','Design & Creative','Digital Marketing',
@@ -72,7 +73,15 @@ export default function Listings() {
             </span>
           </div>
 
-          {isLoading && <div style={s.loading}>Loading tasks…</div>}
+          {isLoading && <SkeletonGrid count={6} />}
+
+          {!isLoading && data?.tasks?.length === 0 && (
+            <EmptyState
+              icon="📋"
+              title="No tasks found"
+              message="Try adjusting your filters or search terms. New tasks are posted regularly."
+            />
+          )}
 
           <div style={s.grid}>
             {data?.tasks?.map(task => (
@@ -85,13 +94,13 @@ export default function Listings() {
                 <p style={s.cardDesc}>{task.description.slice(0, 120)}…</p>
                 <div style={s.cardMeta}>
                   <span style={s.metaItem}>📁 {task.category}</span>
-                  {task.budgetMax && <span style={s.metaItem}>💰 Up to ${task.budgetMax}</span>}
+                  {task.budgetMax && <span style={s.metaItem}>💰 Up to K${task.budgetMax}</span>}
                   {task.deadline  && <span style={s.metaItem}>📅 {new Date(task.deadline).toLocaleDateString()}</span>}
                 </div>
                 <div style={s.cardFooter}>
                   <div style={s.bizInfo}>
-                    <div style={s.bizAvatar}>{task.business?.name?.[0]}</div>
-                    <span style={{ fontSize: 13, color: '#6b7280' }}>{task.business?.businessProfile?.companyName || task.business?.name}</span>
+                    <div style={s.bizAvatar}>{task.postedBy?.name?.[0]}</div>
+                    <span style={{ fontSize: 13, color: '#6b7280' }}>{task.postedBy?.businessProfile?.companyName || task.postedBy?.name}</span>
                   </div>
                   <span style={s.proposals}>{task.proposalCount} proposals</span>
                 </div>

@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import messagesAPI from '../../api/messages';
+import messagesAPI        from '../../api/messages';
+import NotificationBell  from './NotificationBell';
 
 export default function Navbar() {
   const { user, isAuthenticated, isBusiness, isProfessional, logout } = useAuth();
@@ -71,6 +72,9 @@ export default function Navbar() {
                 {unread > 0 && <span style={s.badge}>{unread > 9 ? '9+' : unread}</span>}
               </Link>
 
+              {/* Notifications bell */}
+              <NotificationBell />
+
               {/* User dropdown */}
               <div ref={dropdownRef} style={{ position: 'relative' }}>
                 <button style={s.avatarBtn} onClick={() => setMenuOpen(p => !p)}>
@@ -95,8 +99,9 @@ export default function Navbar() {
                     <Link to="/messages"      style={s.dropItem} onClick={() => setMenuOpen(false)}>
                       💬 Messages {unread > 0 && <span style={s.dropBadge}>{unread}</span>}
                     </Link>
-                    <Link to="/profile/edit"  style={s.dropItem} onClick={() => setMenuOpen(false)}>👤 Edit Profile</Link>
-                    {isBusiness && (
+                    <Link to="/profile/view"  style={s.dropItem} onClick={() => setMenuOpen(false)}>👁 View Profile</Link>
+                    <Link to="/profile/edit"  style={s.dropItem} onClick={() => setMenuOpen(false)}>✏️ Edit Profile</Link>
+                    {(isBusiness || isProfessional) && (
                       <Link to="/tasks/new"   style={s.dropItem} onClick={() => setMenuOpen(false)}>➕ Post a Task</Link>
                     )}
 
@@ -127,6 +132,7 @@ export default function Navbar() {
             <>
               <Link to={dashboardPath}    style={s.mobileLink}>Dashboard</Link>
               <Link to="/messages"        style={s.mobileLink}>Messages {unread > 0 && `(${unread})`}</Link>
+              <Link to="/profile/view"    style={s.mobileLink}>View Profile</Link>
               <Link to="/profile/edit"    style={s.mobileLink}>Edit Profile</Link>
               <button style={s.mobileLogout} onClick={logout}>Sign out</button>
             </>
@@ -147,8 +153,7 @@ const s = {
   header:      { background: '#fff', borderBottom: '1px solid #e5e7eb', position: 'sticky', top: 0, zIndex: 200 },
   inner:       { maxWidth: 1200, margin: '0 auto', padding: '0 24px', display: 'flex', alignItems: 'center', height: 64, gap: 32 },
   logo:        { fontSize: 20, fontWeight: 800, color: '#2563eb', textDecoration: 'none', flexShrink: 0 },
-  navLinks:    { display: 'flex', alignItems: 'center', gap: 4, flex: 1 },
-  navLink:     { fontSize: 14, color: '#374151', padding: '6px 12px', borderRadius: 8, textDecoration: 'none' },
+  navLinks:    { display: 'flex', alignItems: 'center', gap: 4, flex: 1 },  navLink:     { fontSize: 14, color: '#374151', padding: '6px 12px', borderRadius: 8, textDecoration: 'none' },
   navLinkActive:{ color: '#2563eb', background: '#eff6ff', fontWeight: 500 },
   right:       { display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto' },
   loginBtn:    { fontSize: 14, color: '#374151', padding: '8px 14px', textDecoration: 'none' },
