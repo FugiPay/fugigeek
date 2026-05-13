@@ -14,7 +14,7 @@ export const useAuth = () => {
       const { data } = await authAPI.register(formData);
       dispatch(setCredentials({ user: data.user, token: data.token }));
       const role = data.user.role;
-      if (role === 'admin')                              navigate('/dashboard/admin');
+      if (role === 'admin' || role === 'manager')        navigate('/dashboard/admin');
       else if (role === 'business' || role === 'individual') navigate('/dashboard/business');
       else navigate('/dashboard/professional');
     } catch (err) {
@@ -28,7 +28,7 @@ export const useAuth = () => {
       const { data } = await authAPI.login(formData);
       dispatch(setCredentials({ user: data.user, token: data.token }));
       const role = data.user.role;
-      if (role === 'admin')                              navigate('/dashboard/admin');
+      if (role === 'admin' || role === 'manager')            navigate('/dashboard/admin');
       else if (role === 'business' || role === 'individual') navigate('/dashboard/business');
       else navigate('/dashboard/professional');
     } catch (err) {
@@ -56,7 +56,9 @@ export const useAuth = () => {
     isIndividual:    user?.role === 'individual',
     isBusiness:      user?.role === 'business',
     isProfessional:  user?.role === 'professional',
+    isManager:       user?.role === 'manager',
     isAdmin:         user?.role === 'admin',
-    canPost:         ['individual', 'business', 'admin'].includes(user?.role),
+    isStaff:         ['admin', 'manager'].includes(user?.role),
+    canPost:         ['individual', 'business', 'professional', 'admin', 'manager'].includes(user?.role),
   };
 };

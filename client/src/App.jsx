@@ -65,8 +65,8 @@ export default function App() {
         {/* Professional only */}
         <Route path="/dashboard/professional" element={<RoleRoute roles={['professional']}><ProfessionalDashboard /></RoleRoute>} />
 
-        {/* Admin only */}
-        <Route path="/dashboard/admin"        element={<RoleRoute roles={['admin']}><AdminDashboard /></RoleRoute>} />
+        {/* Admin + Manager */}
+        <Route path="/dashboard/admin" element={<RoleRoute roles={['admin', 'manager']}><AdminDashboard /></RoleRoute>} />
 
         {/* Authenticated (any role) */}
         <Route path="/orders/:id"             element={<PrivateRoute><OrderDetail /></PrivateRoute>} />

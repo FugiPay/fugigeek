@@ -42,17 +42,18 @@ const NAV_ITEMS = {
 };
 
 export default function Sidebar() {
-  const { user, logout, isBusiness, isIndividual, isProfessional, isAdmin } = useAuth();
+  const { user, logout, isBusiness, isIndividual, isProfessional, isAdmin, isManager } = useAuth();
   const location = useLocation();
 
-  const role  = isAdmin ? 'admin' : isBusiness ? 'business' : isIndividual ? 'individual' : 'professional';
-  const items = NAV_ITEMS[role] || [];
+  const role  = isAdmin ? 'admin' : isManager ? 'manager' : isBusiness ? 'business' : isIndividual ? 'individual' : 'professional';
+  const items = NAV_ITEMS[role] || NAV_ITEMS['admin']; // managers use admin nav
 
   const roleTag = {
-    individual:   { label: '👤 Individual',    bg: '#f3f4f6', color: '#374151' },
-    business:     { label: '🏢 Business',      bg: '#eff6ff', color: '#2563eb' },
-    professional: { label: '💼 Professional',  bg: '#f0fdf4', color: '#15803d' },
-    admin:        { label: '⚙️ Admin',          bg: '#fef3c7', color: '#b45309' },
+    individual:   { label: '👤 Individual',   bg: '#f3f4f6', color: '#374151' },
+    business:     { label: '🏢 Business',     bg: '#eff6ff', color: '#2563eb' },
+    professional: { label: '💼 Professional', bg: '#f0fdf4', color: '#15803d' },
+    manager:      { label: '🛡 Manager',      bg: '#fef3c7', color: '#b45309' },
+    admin:        { label: '⚙️ Admin',         bg: '#fee2e2', color: '#b91c1c' },
   }[role];
 
   const isActive = path => location.pathname === path.split('#')[0];

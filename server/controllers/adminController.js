@@ -64,17 +64,45 @@ const getUsers = asyncHandler(async (req, res) => {
 // ── @PUT /api/admin/users/:id ────────────────────────────────────────────────
 const updateUser = asyncHandler(async (req, res) => {
   const { isActive, role, verified } = req.body;
+  const requester = req.user; // the admin or manager making the request
+
+  const target = await User.findById(req.params.id);
+  if (!target) { res.status(404); throw new Error('User not found'); }
+
+  // Managers cannot change roles or touch other admins/managers
+  if (requester.role === 'manager') {
+    if (role !== undefined) {
+      res.status(403); throw new Error('Managers cannot change user roles');
+    }
+    if (['admin', 'manager'].includes(target.role)) {
+      res.status(403); throw new Error('Managers cannot modify admin or manager accounts');
+    }
+  }
+
+  // Only admins can promote to admin or manager
+  if (role && ['admin', 'manager'].includes(role) && requester.role !== 'admin') {
+    res.status(403); throw new Error('Only admins can assign admin or manager roles');
+  }
+
+  // Cannot demote/modify another admin unless you are admin
+  if (target.role === 'admin' && requester.role !== 'admin') {
+    res.status(403); throw new Error('Cannot modify an admin account');
+  }
+
   const updates = {};
   if (isActive !== undefined) updates.isActive = isActive;
   if (role)                   updates.role     = role;
   if (verified !== undefined) {
-    // verified applies to the relevant profile
     updates['businessProfile.verified']     = verified;
     updates['professionalProfile.verified'] = verified;
   }
 
-  const user = await User.findByIdAndUpdate(req.params.id, { $set: updates }, { new: true }).select('-password');
-  if (!user) { res.status(404); throw new Error('User not found'); }
+  const user = await User.findByIdAndUpdate(
+    req.params.id,
+    { $set: updates },
+    { new: true }
+  ).select('-password');
+
   res.json({ success: true, user });
 });
 
@@ -82,21 +110,39 @@ const updateUser = asyncHandler(async (req, res) => {
 const deleteUser = asyncHandler(async (req, res) => {
   const user = await User.findById(req.params.id);
   if (!user) { res.status(404); throw new Error('User not found'); }
-  if (user.role === 'admin') { res.status(400); throw new Error('Cannot delete an admin account'); }
-  // Soft delete
+  if (['admin', 'manager'].includes(user.role)) {
+    res.status(400); throw new Error('Cannot deactivate an admin or manager account');
+  }
+  if (req.user.role === 'manager' && ['admin', 'manager'].includes(user.role)) {
+    res.status(403); throw new Error('Managers cannot deactivate admin or manager accounts');
+  }
   user.isActive = false;
   await user.save({ validateBeforeSave: false });
   res.json({ success: true, message: 'User deactivated' });
 });
 
 // ── @POST /api/admin/users/create-admin ──────────────────────────────────────
+// Admin only — creates admin or manager accounts
 const createAdmin = asyncHandler(async (req, res) => {
-  const { name, email, password } = req.body;
+  const { name, email, password, role = 'manager' } = req.body;
+
+  if (!['admin', 'manager'].includes(role)) {
+    res.status(400); throw new Error('Role must be admin or manager');
+  }
+  // Only admins can create other admins
+  if (role === 'admin' && req.user.role !== 'admin') {
+    res.status(403); throw new Error('Only admins can create admin accounts');
+  }
   if (await User.findOne({ email })) {
     res.status(400); throw new Error('Email already in use');
   }
-  const user = await User.create({ name, email, password, role: 'admin' });
-  res.status(201).json({ success: true, message: 'Admin account created', userId: user._id });
+
+  const user = await User.create({ name, email, password, role });
+  res.status(201).json({
+    success: true,
+    message: `${role.charAt(0).toUpperCase() + role.slice(1)} account created`,
+    userId: user._id,
+  });
 });
 
 // ── @GET /api/admin/tasks ────────────────────────────────────────────────────

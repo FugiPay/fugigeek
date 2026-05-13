@@ -18,10 +18,11 @@ const userSchema = new mongoose.Schema(
     // 'individual'   → personal user, posts tasks, hires professionals
     // 'business'     → company, posts tasks, hires professionals
     // 'professional' → applies to tasks, completes work
-    // 'admin'        → platform management
+    // 'manager'      → platform moderation, limited admin access
+    // 'admin'        → full platform management
     role: {
       type: String,
-      enum: ['individual', 'business', 'professional', 'admin'],
+      enum: ['individual', 'business', 'professional', 'manager', 'admin'],
       required: [true, 'Role is required'],
     },
 

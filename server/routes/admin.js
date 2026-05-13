@@ -8,23 +8,26 @@ const {
   getCategories,
 } = require('../controllers/adminController');
 
-// All admin routes require auth + admin role
-router.use(protect, authorize('admin'));
+// Both admin and manager can access the dashboard
+const staff = authorize('admin', 'manager');
 
-router.get( '/stats',                 getStats);
+router.use(protect);
 
-router.get( '/users',                 getUsers);
-router.put( '/users/:id',             updateUser);
-router.delete('/users/:id',           deleteUser);
-router.post('/users/create-admin',    createAdmin);
+router.get( '/stats',                        staff,                 getStats);
 
-router.get( '/tasks',                 getTasks);
-router.put( '/tasks/:id',             updateTask);
-router.delete('/tasks/:id',           deleteTask);
+router.get( '/users',                        staff,                 getUsers);
+router.put( '/users/:id',                    staff,                 updateUser);
+router.delete('/users/:id',                  staff,                 deleteUser);
+// Only admins can create admin/manager accounts
+router.post('/users/create-admin',           authorize('admin'),    createAdmin);
 
-router.get( '/orders',                getOrders);
-router.put( '/orders/:id/resolve',    resolveOrder);
+router.get( '/tasks',                        staff,                 getTasks);
+router.put( '/tasks/:id',                    staff,                 updateTask);
+router.delete('/tasks/:id',                  staff,                 deleteTask);
 
-router.get( '/categories',            getCategories);
+router.get( '/orders',                       staff,                 getOrders);
+router.put( '/orders/:id/resolve',           staff,                 resolveOrder);
+
+router.get( '/categories',                   staff,                 getCategories);
 
 module.exports = router;

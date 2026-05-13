@@ -8,7 +8,7 @@ import Sidebar from '../components/common/Sidebar';
 const TABS = ['Overview', 'Users', 'Tasks', 'Orders', 'Categories'];
 
 export default function AdminDashboard() {
-  const { user } = useAuth();
+  const { user, isAdmin, isManager } = useAuth();
   const qc       = useQueryClient();
   const [tab,         setTab]         = useState('Overview');
   const [userSearch,  setUserSearch]  = useState('');
@@ -97,24 +97,42 @@ export default function AdminDashboard() {
               ))}
             </div>
 
-            {/* Create admin */}
-            <div style={s.card}>
-              <h2 style={s.cardTitle}>Create Admin Account</h2>
-              {adminMsg && <div style={s.successMsg}>{adminMsg}</div>}
-              <div style={s.formRow}>
-                <input style={s.input} placeholder="Name"
-                  value={newAdmin.name} onChange={e => setNewAdmin(p => ({ ...p, name: e.target.value }))} />
-                <input style={s.input} placeholder="Email" type="email"
-                  value={newAdmin.email} onChange={e => setNewAdmin(p => ({ ...p, email: e.target.value }))} />
-                <input style={s.input} placeholder="Password" type="password"
-                  value={newAdmin.password} onChange={e => setNewAdmin(p => ({ ...p, password: e.target.value }))} />
-                <button style={s.btn}
-                  onClick={() => createAdminMutation.mutate(newAdmin)}
-                  disabled={createAdminMutation.isLoading}>
-                  Create
-                </button>
+            {/* Create staff account — admin only */}
+            {isAdmin && (
+              <div style={s.card}>
+                <h2 style={s.cardTitle}>Create Staff Account</h2>
+                <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 14 }}>
+                  Create an admin or manager account. Managers have limited access — they cannot create accounts or change user roles.
+                </p>
+                {adminMsg && <div style={s.successMsg}>{adminMsg}</div>}
+                <div style={s.formRow}>
+                  <input style={s.input} placeholder="Full name"
+                    value={newAdmin.name} onChange={e => setNewAdmin(p => ({ ...p, name: e.target.value }))} />
+                  <input style={s.input} placeholder="Email address" type="email"
+                    value={newAdmin.email} onChange={e => setNewAdmin(p => ({ ...p, email: e.target.value }))} />
+                  <input style={s.input} placeholder="Password" type="password"
+                    value={newAdmin.password} onChange={e => setNewAdmin(p => ({ ...p, password: e.target.value }))} />
+                  <select style={s.input}
+                    value={newAdmin.role || 'manager'}
+                    onChange={e => setNewAdmin(p => ({ ...p, role: e.target.value }))}>
+                    <option value="manager">Manager</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                  <button style={s.btn}
+                    onClick={() => createAdminMutation.mutate(newAdmin)}
+                    disabled={createAdminMutation.isLoading}>
+                    {createAdminMutation.isLoading ? 'Creating…' : 'Create account'}
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
+            {isManager && (
+              <div style={{ ...s.card, background: '#fffbeb', borderColor: '#fde68a' }}>
+                <p style={{ fontSize: 14, color: '#92400e' }}>
+                  🛡 You are signed in as a <strong>Manager</strong>. You can manage users, tasks, and orders, but cannot create staff accounts or change user roles.
+                </p>
+              </div>
+            )}
           </div>
         )}
 
@@ -148,15 +166,30 @@ export default function AdminDashboard() {
                     </td>
                     <td style={s.td}>{new Date(u.createdAt).toLocaleDateString()}</td>
                     <td style={s.td}>
-                      <div style={{ display: 'flex', gap: 8 }}>
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                        {/* Role change — admin only */}
+                        {isAdmin && !['admin'].includes(u.role) && (
+                          <select
+                            style={{ ...s.input, padding: '4px 8px', fontSize: 12, maxWidth: 130 }}
+                            value={u.role}
+                            onChange={e => updateUserMutation.mutate({ id: u._id, data: { role: e.target.value } })}>
+                            <option value="individual">Individual</option>
+                            <option value="business">Business</option>
+                            <option value="professional">Professional</option>
+                            <option value="manager">Manager</option>
+                            <option value="admin">Admin</option>
+                          </select>
+                        )}
                         <button style={s.actionBtn}
                           onClick={() => updateUserMutation.mutate({ id: u._id, data: { isActive: !u.isActive } })}>
                           {u.isActive ? 'Deactivate' : 'Activate'}
                         </button>
-                        <button style={{ ...s.actionBtn, background: '#fef2f2', color: '#dc2626' }}
-                          onClick={() => { if (window.confirm(`Delete ${u.name}?`)) deleteUserMutation.mutate(u._id); }}>
-                          Delete
-                        </button>
+                        {isAdmin && !['admin', 'manager'].includes(u.role) && (
+                          <button style={{ ...s.actionBtn, background: '#fef2f2', color: '#dc2626' }}
+                            onClick={() => { if (window.confirm(`Deactivate ${u.name}?`)) deleteUserMutation.mutate(u._id); }}>
+                            Remove
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -302,7 +335,8 @@ export default function AdminDashboard() {
 }
 
 const roleBadgeColor = role => ({
-  admin:        { background: '#fef3c7', color: '#b45309' },
+  admin:        { background: '#fee2e2', color: '#b91c1c' },
+  manager:      { background: '#fef3c7', color: '#b45309' },
   business:     { background: '#dbeafe', color: '#1d4ed8' },
   professional: { background: '#dcfce7', color: '#15803d' },
   individual:   { background: '#f3f4f6', color: '#374151' },
