@@ -2,6 +2,7 @@ const User         = require('../models/User');
 const Task         = require('../models/Task');
 const Order        = require('../models/Order');
 const Review       = require('../models/Review');
+const Category     = require('../models/Category');
 const asyncHandler = require('../utils/asyncHandler');
 const bcrypt       = require('bcryptjs');
 
@@ -219,18 +220,74 @@ const resolveOrder = asyncHandler(async (req, res) => {
 });
 
 // ── @GET /api/admin/categories ───────────────────────────────────────────────
-// Returns category usage stats from tasks collection
 const getCategories = asyncHandler(async (req, res) => {
+  const categories = await Category.find().sort('order name');
+
+  // Attach task count to each category
   const stats = await Task.aggregate([
     { $group: { _id: '$category', count: { $sum: 1 } } },
-    { $sort:  { count: -1 } },
   ]);
-  res.json({ success: true, categories: stats });
+  const countMap = {};
+  stats.forEach(s => { countMap[s._id] = s.count; });
+
+  const result = categories.map(c => ({
+    ...c.toObject(),
+    taskCount: countMap[c.name] || 0,
+  }));
+
+  res.json({ success: true, categories: result });
+});
+
+// ── @POST /api/admin/categories ──────────────────────────────────────────────
+const createCategory = asyncHandler(async (req, res) => {
+  const { name, icon, description, order } = req.body;
+  if (!name) { res.status(400); throw new Error('Category name is required'); }
+
+  const existing = await Category.findOne({ name: name.trim() });
+  if (existing) { res.status(400); throw new Error('Category already exists'); }
+
+  const category = await Category.create({ name: name.trim(), icon, description, order: order || 0 });
+  res.status(201).json({ success: true, category });
+});
+
+// ── @PUT /api/admin/categories/:id ───────────────────────────────────────────
+const updateCategory = asyncHandler(async (req, res) => {
+  const { name, icon, description, isActive, order } = req.body;
+  const updates = {};
+  if (name        !== undefined) updates.name        = name.trim();
+  if (icon        !== undefined) updates.icon        = icon;
+  if (description !== undefined) updates.description = description;
+  if (isActive    !== undefined) updates.isActive    = isActive;
+  if (order       !== undefined) updates.order       = order;
+
+  const category = await Category.findByIdAndUpdate(
+    req.params.id,
+    { $set: updates },
+    { new: true, runValidators: true }
+  );
+  if (!category) { res.status(404); throw new Error('Category not found'); }
+  res.json({ success: true, category });
+});
+
+// ── @DELETE /api/admin/categories/:id ────────────────────────────────────────
+const deleteCategory = asyncHandler(async (req, res) => {
+  const category = await Category.findById(req.params.id);
+  if (!category) { res.status(404); throw new Error('Category not found'); }
+
+  // Check if any tasks use this category
+  const taskCount = await Task.countDocuments({ category: category.name });
+  if (taskCount > 0) {
+    res.status(400);
+    throw new Error(`Cannot delete — ${taskCount} task(s) use this category. Deactivate it instead.`);
+  }
+
+  await category.deleteOne();
+  res.json({ success: true, message: 'Category deleted' });
 });
 
 module.exports = {
   getStats, getUsers, updateUser, deleteUser, createAdmin,
   getTasks, updateTask, deleteTask,
   getOrders, resolveOrder,
-  getCategories,
+  getCategories, createCategory, updateCategory, deleteCategory,
 };

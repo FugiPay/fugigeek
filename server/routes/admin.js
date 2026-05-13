@@ -5,7 +5,7 @@ const {
   getStats, getUsers, updateUser, deleteUser, createAdmin,
   getTasks, updateTask, deleteTask,
   getOrders, resolveOrder,
-  getCategories,
+  getCategories, createCategory, updateCategory, deleteCategory,
 } = require('../controllers/adminController');
 
 // Both admin and manager can access the dashboard
@@ -28,6 +28,9 @@ router.delete('/tasks/:id',                  staff,                 deleteTask);
 router.get( '/orders',                       staff,                 getOrders);
 router.put( '/orders/:id/resolve',           staff,                 resolveOrder);
 
-router.get( '/categories',                   staff,                 getCategories);
+router.get(   '/categories',          staff,  getCategories);
+router.post(  '/categories',          staff,  createCategory);
+router.put(   '/categories/:id',      staff,  updateCategory);
+router.delete('/categories/:id',      authorize('admin'), deleteCategory);
 
 module.exports = router;
