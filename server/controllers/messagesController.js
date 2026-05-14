@@ -132,8 +132,7 @@ const sendMessage = asyncHandler(async (req, res) => {
     });
   }
 
-  // In-app notification — always send regardless of online status
-  const io = req.app.get('io');
+  // In-app notification — reuse io from above
   notify(io, {
     recipient: recipient,
     type:      'new_message',
