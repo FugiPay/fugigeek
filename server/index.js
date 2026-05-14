@@ -15,28 +15,40 @@ mongoose.connection.on('connected', () => {
 const app    = express();
 const server = http.createServer(app);
 
+// ── CORS origins ──────────────────────────────────────────────────────────────
+const ALLOWED_ORIGINS = [
+  process.env.CLIENT_URL,
+  'https://fugigeek-b7afc.web.app',
+  'https://fugigeek.web.app',
+  'http://localhost:5173',
+  'http://localhost:3000',
+].filter(Boolean);
+
+const corsOptions = {
+  origin: (origin, cb) => {
+    if (!origin) return cb(null, true); // mobile apps, Postman, curl
+    if (ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+    cb(new Error(`CORS blocked: ${origin}`));
+  },
+  credentials: true,
+};
+
 // Request logger
 app.use((req, res, next) => {
   console.log(`${req.method} ${req.path}`, req.body);
   next();
 });
 
-// ── Socket.io ──────────────────────────────────────────────────────────────
+// ── Socket.io ─────────────────────────────────────────────────────────────────
 const io = new Server(server, {
-  cors: { origin: process.env.CLIENT_URL, methods: ['GET', 'POST'] },
+  cors: { origin: ALLOWED_ORIGINS, methods: ['GET', 'POST'] },
 });
-app.set('io', io);
-io.on('connection', socket => {
-  console.log('Socket connected:', socket.id);
-  socket.on('join_room', room => socket.join(room));
-  socket.on('disconnect', () => console.log('Socket disconnected:', socket.id));
-});
- 
+
 // ── Trust proxy (required on Render/Heroku/Railway) ───────────────────────
 app.set('trust proxy', 1);
 
 // ── Core middleware ────────────────────────────────────────────────────────
-app.use(cors({ origin: process.env.CLIENT_URL, credentials: true }));
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
