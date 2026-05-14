@@ -11,19 +11,19 @@ const orderSchema = new mongoose.Schema(
     amount:   { type: Number, default: 0 },
     currency: { type: String, default: 'ZMW' },
 
-    // ── Payment (DPO by Network) ──────────────────────────────────────────────
+    // ── Payment (MoneyUnify — MTN / Airtel / Zamtel) ────────────────────────
     payment: {
-      status:       { type: String, enum: ['unpaid', 'pending', 'paid', 'failed', 'refunded'], default: 'unpaid' },
-      dpoToken:     String,   // DPO TransToken returned when creating transaction
-      dpoRef:       String,   // DPO transaction reference after payment
-      transRef:     String,   // our internal reference
-      paidAt:       Date,
-      failureReason: String,
+      transactionId: String,
+      provider:      { type: String, default: 'moneyunify' },
+      phone:         String,
+      status:        { type: String, enum: ['initiated','otp-pending','successful','failed'], default: 'initiated' },
+      initiatedAt:   Date,
+      confirmedAt:   Date,
     },
 
     // ── Status lifecycle ──────────────────────────────────────────────────────
     // pending_payment → active → submitted → verified | disputed | cancelled
-    // 'pending_payment' → order created, awaiting DPO payment
+    // 'pending_payment' → order created, awaiting mobile money payment
     // 'active'          → payment confirmed, work in progress
     // 'submitted'       → professional submitted deliverables for review
     // 'verified'        → client confirmed work is done

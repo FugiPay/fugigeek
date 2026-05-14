@@ -1,14 +1,13 @@
 const Order        = require('../models/Order');
 const asyncHandler = require('../utils/asyncHandler');
-const dpo          = require('../utils/dpo');
+const { requestPayment, verifyPayment } = require('../utils/moneyunify');
 const email        = require('../utils/email');
 const notify       = require('../utils/notify');
 
-// ── @POST /api/payments/create ────────────────────────────────────────────────
-const createPayment = asyncHandler(async (req, res) => {
-  const { orderId } = req.body;
-
-  const order = await Order.findById(orderId)
+// ── @POST /api/payments/:id/request ─────────────────────────────────────────
+// Sends a USSD push to the client's phone
+const initiatePayment = asyncHandler(async (req, res) => {
+  const order = await Order.findById(req.params.id)
     .populate('client',       'name email phone')
     .populate('professional', 'name email')
     .populate('task',         'title');
@@ -17,134 +16,107 @@ const createPayment = asyncHandler(async (req, res) => {
   if (order.client._id.toString() !== req.user._id.toString()) {
     res.status(403); throw new Error('Not authorised');
   }
-  if (order.payment?.status === 'paid') {
-    res.status(400); throw new Error('Order has already been paid');
+  if (order.status !== 'pending_payment') {
+    res.status(400); throw new Error(`Order is already ${order.status}`);
   }
 
-  const nameParts = order.client.name.split(' ');
+  const phone = req.body.phone || order.client.phone;
+  if (!phone) { res.status(400); throw new Error('Phone number required to initiate payment'); }
 
-  const { transToken, transRef, paymentUrl } = await dpo.createTransaction({
-    amount:            order.amount,
-    orderId:           order._id,
-    taskTitle:         order.task.title,
-    customerEmail:     order.client.email,
-    customerFirstName: nameParts[0],
-    customerLastName:  nameParts.slice(1).join(' ') || nameParts[0],
-    customerPhone:     order.client.phone || '',
-  });
+  try {
+    const result = await requestPayment({ phone, amount: order.amount, reference: order._id.toString() });
 
-  order.payment = { status: 'pending', dpoToken: transToken, transRef };
-  await order.save({ validateBeforeSave: false });
+    order.payment = {
+      transactionId: result.transaction_id,
+      provider:      'moneyunify',
+      phone,
+      status:        result.status,
+      initiatedAt:   new Date(),
+    };
+    await order.save();
 
-  email.sendPaymentInitiated(order.client.email, {
-    clientName: order.client.name,
-    taskTitle:  order.task.title,
-    amount:     order.amount,
-    transRef,
-  });
+    const io = req.app.get('io');
+    email.sendPaymentInitiated(order.client.email, {
+      clientName: order.client.name,
+      taskTitle:  order.task.title,
+      amount:     order.amount,
+    });
+    notify(io, {
+      recipient: order.client._id,
+      type:      'payment_initiated',
+      title:     'Payment initiated 💳',
+      body:      `Check your phone for a K${order.amount} payment prompt. Approve it to activate your order.`,
+      link:      `/orders/${order._id}`,
+    });
 
-  // In-app notification to client
-  const io = req.app.get('io');
-  notify(io, {
-    recipient: order.client._id,
-    type:      'payment_initiated',
-    title:     'Payment initiated 💳',
-    body:      `Your payment of K${order.amount} for "${order.task.title}" is being processed.`,
-    link:      `/orders/${order._id}`,
-  });
-
-  res.json({ success: true, paymentUrl, transRef });
+    res.json({
+      success:       true,
+      message:       'Payment initiated. Check your phone for the USSD prompt.',
+      transactionId: result.transaction_id,
+      status:        result.status,
+    });
+  } catch (err) {
+    console.error('MoneyUnify initiate error:', err.message);
+    res.status(502); throw new Error(err.message || 'Payment request failed. Please try again.');
+  }
 });
 
-// ── @GET /api/payments/verify ─────────────────────────────────────────────────
-// DPO redirects here after payment attempt
-const verifyPayment = asyncHandler(async (req, res) => {
-  const { TransID, CompanyRef } = req.query;
-
-  const order = await Order.findOne({ 'payment.transRef': CompanyRef })
+// ── @GET /api/payments/:id/verify ────────────────────────────────────────────
+// Poll this after the customer approves on their phone
+const checkPayment = asyncHandler(async (req, res) => {
+  const order = await Order.findById(req.params.id)
     .populate('client',       'name email')
     .populate('professional', 'name email')
     .populate('task',         'title');
 
-  if (!order) {
-    return res.redirect(`${process.env.CLIENT_URL}/payment/cancel?error=order_not_found`);
+  if (!order) { res.status(404); throw new Error('Order not found'); }
+  if (order.client._id.toString() !== req.user._id.toString()) {
+    res.status(403); throw new Error('Not authorised');
   }
 
-  const result = await dpo.verifyTransaction(order.payment.dpoToken);
+  if (order.status === 'active') {
+    return res.json({ success: true, status: 'successful', order });
+  }
 
-  if (result.success) {
-    order.payment.status = 'paid';
-    order.payment.dpoRef = result.transactionRef || TransID;
-    order.payment.paidAt = Date.now();
-    order.status         = 'active';
-    await order.save({ validateBeforeSave: false });
+  const transactionId = order.payment?.transactionId;
+  if (!transactionId) { res.status(400); throw new Error('No transaction found for this order'); }
 
-    // Email both parties
-    [
-      { user: order.client,       name: order.client.name },
-      { user: order.professional, name: order.professional.name },
-    ].forEach(({ user, name }) => {
-      email.sendPaymentConfirmed(user.email, {
-        name,
-        taskTitle: order.task.title,
-        amount:    order.amount,
-        orderId:   order._id,
+  try {
+    const result = await verifyPayment(transactionId);
+
+    if (result.status === 'successful') {
+      order.status              = 'active';
+      order.payment.status      = 'successful';
+      order.payment.confirmedAt = new Date();
+      await order.save();
+
+      const io = req.app.get('io');
+      [
+        { user: order.client,       msg: `Your payment of K${order.amount} for "${order.task.title}" is confirmed. Work can begin.` },
+        { user: order.professional, msg: `Payment of K${order.amount} for "${order.task.title}" confirmed. You can start work.` },
+      ].forEach(({ user, msg }) => {
+        email.sendPaymentConfirmed(user.email, { name: user.name, taskTitle: order.task.title, amount: order.amount, orderId: order._id });
+        notify(io, { recipient: user._id, type: 'payment_confirmed', title: 'Payment confirmed ✅', body: msg, link: `/orders/${order._id}` });
       });
-    });
+    } else if (result.status === 'failed') {
+      order.payment.status = 'failed';
+      await order.save();
+    }
 
-    const io = req.app.get('io');
-    // Notify both parties in-app
-    notify(io, {
-      recipient: order.client._id,
-      type:      'payment_confirmed',
-      title:     'Payment confirmed ✅',
-      body:      `Your payment of K${order.amount} for "${order.task.title}" is confirmed. Work can now begin.`,
-      link:      `/orders/${order._id}`,
-    });
-    notify(io, {
-      recipient: order.professional._id,
-      type:      'payment_confirmed',
-      title:     'Payment received 💰',
-      body:      `Payment of K${order.amount} for "${order.task.title}" has been confirmed. You can start work now.`,
-      link:      `/orders/${order._id}`,
-    });
-
-    if (io) io.to(order.professional._id.toString()).emit('payment_confirmed', { orderId: order._id });
-
-    return res.redirect(`${process.env.CLIENT_URL}/payment/success?orderId=${order._id}`);
+    res.json({ success: true, status: result.status, order });
+  } catch (err) {
+    console.error('MoneyUnify verify error:', err.message);
+    res.status(502); throw new Error('Could not verify payment. Please try again.');
   }
-
-  order.payment.status        = 'failed';
-  order.payment.failureReason = result.resultExpl;
-  await order.save({ validateBeforeSave: false });
-
-  return res.redirect(`${process.env.CLIENT_URL}/payment/cancel?error=${encodeURIComponent(result.resultExpl)}&orderId=${order._id}`);
-});
-
-// ── @GET /api/payments/cancel ─────────────────────────────────────────────────
-const cancelPayment = asyncHandler(async (req, res) => {
-  const { CompanyRef } = req.query;
-  if (CompanyRef) {
-    await Order.findOneAndUpdate(
-      { 'payment.transRef': CompanyRef },
-      { 'payment.status': 'failed', 'payment.failureReason': 'Cancelled by user' }
-    );
-  }
-  res.redirect(`${process.env.CLIENT_URL}/payment/cancel?reason=cancelled`);
 });
 
 // ── @GET /api/payments/history ────────────────────────────────────────────────
-const getPaymentHistory = asyncHandler(async (req, res) => {
-  const filter = req.user.role === 'professional'
-    ? { professional: req.user._id }
-    : { client:       req.user._id };
-
-  const orders = await Order.find({ ...filter, 'payment.status': { $in: ['paid', 'pending'] } })
-    .populate('task', 'title')
-    .select('amount currency payment status createdAt task')
-    .sort('-createdAt');
-
-  res.json({ success: true, payments: orders });
+const getHistory = asyncHandler(async (req, res) => {
+  const orders = await Order.find({ client: req.user._id, 'payment.status': 'successful' })
+    .populate('task', 'title category')
+    .populate('professional', 'name')
+    .sort('-payment.confirmedAt');
+  res.json({ success: true, orders });
 });
 
-module.exports = { createPayment, verifyPayment, cancelPayment, getPaymentHistory };
+module.exports = { initiatePayment, checkPayment, getHistory };

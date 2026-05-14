@@ -1,5 +1,5 @@
 import { usePageTitle } from '../hooks/usePageTitle';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import ordersAPI   from '../api/orders';
@@ -10,20 +10,44 @@ export default function OrderDetail() {
   const { id } = useParams();
   const { user, isProfessional } = useAuth();
   const qc = useQueryClient();
-  const [notes, setNotes] = useState('');
-  const [msg,   setMsg]   = useState({ type: '', text: '' });
+  const [notes,    setNotes]    = useState('');
+  const [msg,      setMsg]      = useState({ type: '', text: '' });
+  const [phone,    setPhone]    = useState(user?.phone || '');
+  const [polling,  setPolling]  = useState(false);
 
   const { data, isLoading } = useQuery(['order', id], () => ordersAPI.getOne(id).then(r => r.data));
   const order = data?.order;
   usePageTitle(order?.task?.title);
 
+  // Poll for payment confirmation after initiation
+  useEffect(() => {
+    if (!polling) return;
+    const timer = setInterval(async () => {
+      try {
+        const { data: res } = await paymentsAPI.verify(id);
+        if (res.status === 'successful') {
+          setPolling(false);
+          setMsg({ type: 'success', text: '✅ Payment confirmed! The order is now active.' });
+          qc.invalidateQueries(['order', id]);
+          clearInterval(timer);
+        } else if (res.status === 'failed') {
+          setPolling(false);
+          setMsg({ type: 'error', text: 'Payment failed. Please try again.' });
+          clearInterval(timer);
+        }
+      } catch {}
+    }, 5000); // check every 5 seconds
+    return () => clearInterval(timer);
+  }, [polling, id]);
+
   const payMutation = useMutation(
-    () => paymentsAPI.create(id),
+    () => paymentsAPI.initiate(id, phone),
     {
-      onSuccess: ({ data }) => {
-        window.location.href = data.paymentUrl;
+      onSuccess: () => {
+        setMsg({ type: 'info', text: `📱 Payment prompt sent to ${phone}. Approve it on your phone. This page will update automatically.` });
+        setPolling(true);
       },
-      onError: err => setMsg({ type: 'warn', text: err.response?.data?.message || 'Payment initiation failed.' }),
+      onError: err => setMsg({ type: 'error', text: err.response?.data?.message || 'Payment initiation failed.' }),
     }
   );
 
@@ -107,9 +131,9 @@ export default function OrderDetail() {
           {/* Feedback message */}
           {msg.text && (
             <div style={{
-              background: msg.type === 'success' ? '#f0fdf4' : '#fffbeb',
-              color:      msg.type === 'success' ? '#15803d' : '#b45309',
-              border:     `1px solid ${msg.type === 'success' ? '#bbf7d0' : '#fde68a'}`,
+              background: msg.type === 'success' ? '#f0fdf4' : msg.type === 'error' ? '#fef2f2' : msg.type === 'info' ? '#eff6ff' : '#fffbeb',
+              color:      msg.type === 'success' ? '#15803d' : msg.type === 'error' ? '#dc2626' : msg.type === 'info' ? '#1d4ed8' : '#b45309',
+              border:     `1px solid ${msg.type === 'success' ? '#bbf7d0' : msg.type === 'error' ? '#fecaca' : msg.type === 'info' ? '#bfdbfe' : '#fde68a'}`,
               borderRadius: 8, padding: '12px 16px', fontSize: 14,
             }}>{msg.text}</div>
           )}
@@ -172,18 +196,59 @@ export default function OrderDetail() {
             </div>
           )}
 
-          {/* Client: pay to activate order */}
+          {/* Client: pay via mobile money */}
           {isClient && order.status === 'pending_payment' && (
             <div style={{ ...s.card, borderColor: '#bfdbfe', background: '#eff6ff' }}>
               <h2 style={{ ...s.cardTitle, color: '#1d4ed8' }}>Payment required</h2>
-              <p style={{ fontSize: 14, color: '#1d4ed8', marginBottom: 16 }}>
-                Complete your payment of <strong>K{order.amount}</strong> to activate this order and
-                notify the professional to begin work.
+              <p style={{ fontSize: 14, color: '#374151', marginBottom: 16, lineHeight: 1.6 }}>
+                Pay <strong>K{order.amount}</strong> via mobile money to activate this order.
+                You'll receive a USSD prompt on your phone — approve it to complete payment.
               </p>
-              <button style={{ ...s.btn, background: '#2563eb' }}
-                onClick={() => payMutation.mutate()} disabled={payMutation.isLoading}>
-                {payMutation.isLoading ? 'Redirecting to payment…' : `💳 Pay K${order.amount}`}
-              </button>
+
+              {/* Network logos text */}
+              <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+                {['MTN MoMo', 'Airtel Money', 'Zamtel Kwacha'].map(n => (
+                  <span key={n} style={{ padding: '4px 12px', background: '#fff', border: '1px solid #bfdbfe', borderRadius: 20, fontSize: 12, fontWeight: 500, color: '#1d4ed8' }}>
+                    {n}
+                  </span>
+                ))}
+              </div>
+
+              {!polling ? (
+                <>
+                  <label style={s.label}>Mobile money phone number</label>
+                  <input
+                    style={{ ...s.input, marginBottom: 14 }}
+                    type="tel"
+                    placeholder="e.g. 0971234567"
+                    value={phone}
+                    onChange={e => setPhone(e.target.value)}
+                  />
+                  <button style={{ ...s.btn, background: '#2563eb' }}
+                    onClick={() => {
+                      if (!phone.trim()) return setMsg({ type: 'error', text: 'Please enter your mobile money phone number' });
+                      payMutation.mutate();
+                    }}
+                    disabled={payMutation.isLoading}>
+                    {payMutation.isLoading ? 'Sending payment prompt…' : `📱 Pay K${order.amount} via Mobile Money`}
+                  </button>
+                </>
+              ) : (
+                <div style={{ padding: 16, background: '#fff', borderRadius: 10, border: '1px solid #bfdbfe', textAlign: 'center' }}>
+                  <div style={{ fontSize: 28, marginBottom: 8 }}>📱</div>
+                  <p style={{ fontSize: 14, fontWeight: 600, color: '#1d4ed8', marginBottom: 4 }}>
+                    Waiting for your approval…
+                  </p>
+                  <p style={{ fontSize: 13, color: '#6b7280' }}>
+                    Check your phone for the payment prompt and approve K{order.amount}.
+                    This page updates automatically.
+                  </p>
+                  <button style={{ ...s.btn, background: '#f3f4f6', color: '#374151', marginTop: 12, fontSize: 13 }}
+                    onClick={() => { setPolling(false); setMsg({ type: '', text: '' }); }}>
+                    Cancel
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -301,6 +366,7 @@ const s = {
   delDesc:      { fontSize: 13, color: '#6b7280', marginTop: 4 },
   noteBox:      { background: '#f9fafb', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#374151', marginTop: 12 },
   label:        { display: 'block', fontSize: 13, fontWeight: 500, color: '#374151', marginBottom: 6, marginTop: 12 },
+  input:        { width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: 8, fontSize: 14, outline: 'none', background: '#fff' },
   textarea:     { width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: 8, fontSize: 14, outline: 'none', resize: 'vertical', fontFamily: 'inherit' },
   btn:          { padding: '11px 22px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 500, cursor: 'pointer', marginTop: 12 },
   sideCard:     { background: '#fff', borderRadius: 12, border: '1px solid #e5e7eb', padding: 20, marginBottom: 16 },

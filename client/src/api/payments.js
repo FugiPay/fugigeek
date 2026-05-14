@@ -1,8 +1,12 @@
 import api from './axios';
 
 const paymentsAPI = {
-  create:     orderId => api.post('/payments/create', { orderId }),
-  getHistory: ()      => api.get('/payments/history'),
+  // Initiate USSD push to phone
+  initiate:   (orderId, phone)  => api.post(`/payments/${orderId}/request`, { phone }),
+  // Poll for payment status
+  verify:     orderId           => api.get(`/payments/${orderId}/verify`),
+  // Payment history
+  getHistory: ()                => api.get('/payments/history'),
 };
 
 export default paymentsAPI;
