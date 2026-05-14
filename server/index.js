@@ -71,6 +71,29 @@ app.get('/api/debug/s3', (_, res) => res.json({
   secretSet: !!process.env.AWS_SECRET_ACCESS_KEY,
 }));
 
+// ── S3 write test ─────────────────────────────────────────────────────────
+app.get('/api/debug/s3-write', async (_, res) => {
+  try {
+    const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
+    const s3 = new S3Client({
+      region: process.env.AWS_REGION,
+      credentials: {
+        accessKeyId:     process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+      },
+    });
+    await s3.send(new PutObjectCommand({
+      Bucket:      process.env.AWS_S3_BUCKET,
+      Key:         'test/connection-test.txt',
+      Body:        'Fugigeek S3 connection test',
+      ContentType: 'text/plain',
+    }));
+    res.json({ success: true, message: 'File written to S3 successfully!' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message, code: err.Code || err.code });
+  }
+});
+
 // ── Public categories (used by PostTask, Listings filters etc) ────────────
 app.get('/api/categories', async (_, res) => {
   try {
