@@ -99,4 +99,46 @@ const resetPassword = asyncHandler(async (req, res) => {
   sendToken(user, 200, res);
 });
 
-module.exports = { register, login, getMe, updateProfile, updatePassword, forgotPassword, resetPassword };
+// @PUT /api/auth/deactivate — user deactivates their own account
+const deactivateAccount = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id).select('+password');
+  if (!user) { res.status(404); throw new Error('User not found'); }
+
+  // Require password confirmation
+  const match = await user.matchPassword(req.body.password);
+  if (!match) { res.status(401); throw new Error('Incorrect password'); }
+
+  user.isActive = false;
+  await user.save({ validateBeforeSave: false });
+
+  res.json({ success: true, message: 'Account deactivated. Contact support to reactivate.' });
+});
+
+// @POST /api/auth/delete-request — user requests account deletion (GDPR / Data Protection Act)
+const requestDeleteAccount = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id).select('+password');
+  if (!user) { res.status(404); throw new Error('User not found'); }
+
+  const match = await user.matchPassword(req.body.password);
+  if (!match) { res.status(401); throw new Error('Incorrect password'); }
+
+  user.deleteRequested   = true;
+  user.deleteRequestedAt = Date.now();
+  user.deleteReason      = req.body.reason || '';
+  user.isActive          = false; // deactivate immediately
+  await user.save({ validateBeforeSave: false });
+
+  // Email user confirmation
+  email.sendAccountDeletionRequested(user.email, { name: user.name });
+
+  res.json({
+    success: true,
+    message: 'Your deletion request has been received. Your account has been deactivated and will be permanently deleted within 30 days. You will receive a confirmation email.',
+  });
+});
+
+module.exports = {
+  register, login, getMe, updateProfile, updatePassword,
+  forgotPassword, resetPassword,
+  deactivateAccount, requestDeleteAccount,
+};

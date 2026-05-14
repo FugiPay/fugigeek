@@ -12,6 +12,8 @@ import PaymentCancel          from './pages/PaymentCancel';
 import Listings               from './pages/Listings';
 import ListingDetail          from './pages/ListingDetail';
 import PostTask               from './pages/PostTask';
+import EditTask               from './pages/EditTask';
+import AccountSettings        from './pages/AccountSettings';
 import BusinessDashboard      from './pages/BusinessDashboard';
 import ProfessionalDashboard  from './pages/ProfessionalDashboard';
 import AdminDashboard         from './pages/AdminDashboard';
@@ -55,6 +57,7 @@ export default function App() {
         <Route path="/listings"               element={<Listings />} />
         <Route path="/listings/:id"           element={<ListingDetail />} />
         <Route path="/listings/:id/proposals" element={<PrivateRoute><Proposals /></PrivateRoute>} />
+        <Route path="/listings/:id/edit"      element={<PrivateRoute><EditTask /></PrivateRoute>} />
         <Route path="/users/professionals"    element={<Professionals />} />
         <Route path="/users/:id"              element={<UserProfile />} />
 
@@ -72,6 +75,7 @@ export default function App() {
         <Route path="/orders/:id"             element={<PrivateRoute><OrderDetail /></PrivateRoute>} />
         <Route path="/profile/edit"           element={<PrivateRoute><ProfileEdit /></PrivateRoute>} />
         <Route path="/profile/view"           element={<PrivateRoute><ViewProfile /></PrivateRoute>} />
+        <Route path="/account/settings"       element={<PrivateRoute><AccountSettings /></PrivateRoute>} />
         <Route path="/messages"               element={<PrivateRoute><Messages /></PrivateRoute>} />
 
         {/* Auth */}

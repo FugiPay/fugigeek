@@ -90,6 +90,11 @@ const userSchema = new mongoose.Schema(
     resetPasswordToken:  String,
     resetPasswordExpire: Date,
     lastSeen:            { type: Date, default: Date.now },
+
+    // ── Account deletion (GDPR / Zambia Data Protection Act 2021) ──────────
+    deleteRequested:   { type: Boolean, default: false },
+    deleteRequestedAt: { type: Date },
+    deleteReason:      { type: String, maxlength: 500 },
   },
   { timestamps: true }
 );

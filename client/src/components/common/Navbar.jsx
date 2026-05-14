@@ -114,6 +114,7 @@ export default function Navbar() {
                     </Link>
                     <Link to="/profile/view" style={s.dropItem} onClick={() => setMenuOpen(false)}>👁 View Profile</Link>
                     <Link to="/profile/edit" style={s.dropItem} onClick={() => setMenuOpen(false)}>✏️ Edit Profile</Link>
+                    <Link to="/account/settings" style={s.dropItem} onClick={() => setMenuOpen(false)}>⚙️ Account Settings</Link>
                     {canPostTask && (
                       <Link to="/tasks/new" style={s.dropItem} onClick={() => setMenuOpen(false)}>➕ Post a Task</Link>
                     )}

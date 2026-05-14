@@ -1,0 +1,15 @@
+import api from './axios';
+
+const authAPI = {
+  register:             data               => api.post('/auth/register', data),
+  login:                data               => api.post('/auth/login', data),
+  getMe:                ()                 => api.get('/auth/me'),
+  updateProfile:        data               => api.put('/auth/updateprofile', data),
+  updatePassword:       data               => api.put('/auth/updatepassword', data),
+  forgotPassword:       email              => api.post('/auth/forgotpassword', { email }),
+  resetPassword:        (token, data)      => api.put(`/auth/resetpassword/${token}`, data),
+  deactivateAccount:    password           => api.put('/auth/deactivate', { password }),
+  requestDeleteAccount: (password, reason) => api.post('/auth/delete-request', { password, reason }),
+};
+
+export default authAPI;

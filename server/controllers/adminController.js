@@ -41,11 +41,12 @@ const getStats = asyncHandler(async (req, res) => {
 
 // ── @GET /api/admin/users ────────────────────────────────────────────────────
 const getUsers = asyncHandler(async (req, res) => {
-  const { page = 1, limit = 20, role, search, status } = req.query;
+  const { page = 1, limit = 20, role, search, status, deleteRequested } = req.query;
 
   const query = {};
-  if (role)   query.role     = role;
-  if (status) query.isActive = status === 'active';
+  if (role)            query.role             = role;
+  if (status)          query.isActive         = status === 'active';
+  if (deleteRequested) query.deleteRequested  = true;
   if (search) query.$or = [
     { name:  { $regex: search, $options: 'i' } },
     { email: { $regex: search, $options: 'i' } },
@@ -146,7 +147,27 @@ const createAdmin = asyncHandler(async (req, res) => {
   });
 });
 
-// ── @GET /api/admin/tasks ────────────────────────────────────────────────────
+// ── @DELETE /api/admin/users/:id/purge ───────────────────────────────────────
+// Permanently delete a user — for admin processing of deletion requests
+const purgeUser = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.params.id);
+  if (!user) { res.status(404); throw new Error('User not found'); }
+  if (user.role === 'admin') { res.status(400); throw new Error('Cannot purge an admin account'); }
+
+  // Anonymise rather than delete — preserves order/review integrity
+  user.name              = 'Deleted User';
+  user.email             = `deleted_${user._id}@fugigeek.com`;
+  user.avatar            = '';
+  user.phone             = '';
+  user.isActive          = false;
+  user.deleteRequested   = false;
+  user.businessProfile   = {};
+  user.professionalProfile = {};
+  user.individualProfile = {};
+  await user.save({ validateBeforeSave: false });
+
+  res.json({ success: true, message: 'User data purged. Records anonymised for compliance.' });
+});
 const getTasks = asyncHandler(async (req, res) => {
   const { page = 1, limit = 20, status, category, search } = req.query;
 
@@ -286,7 +307,7 @@ const deleteCategory = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
-  getStats, getUsers, updateUser, deleteUser, createAdmin,
+  getStats, getUsers, updateUser, deleteUser, createAdmin, purgeUser,
   getTasks, updateTask, deleteTask,
   getOrders, resolveOrder,
   getCategories, createCategory, updateCategory, deleteCategory,

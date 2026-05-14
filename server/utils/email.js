@@ -179,4 +179,21 @@ module.exports = {
       ${btn('Browse open tasks', `${BASE_URL}/listings`)}
     `),
   }),
+
+  sendAccountDeletionRequested: (to, { name }) => send({
+    to,
+    subject: 'Account deletion request received — Fugigeek',
+    html: wrap(`
+      ${h2('Account deletion request received')}
+      ${para(`Hi ${name}, we have received your request to delete your Fugigeek account.`)}
+      ${para('Your account has been deactivated immediately. All your personal data will be permanently deleted within <strong>30 days</strong> in accordance with the Zambia Data Protection Act (2021).')}
+      ${para('During this period:')}
+      <ul style="color:#374151;line-height:2;padding-left:20px;">
+        <li>You will not be able to log in</li>
+        <li>Your profile will not be visible to other users</li>
+        <li>Order and transaction records may be retained for legal compliance</li>
+      </ul>
+      ${para('If you change your mind, contact us at <a href="mailto:support@fugigeek.com" style="color:#2563eb;">support@fugigeek.com</a> within 30 days.')}
+    `),
+  }),
 };
