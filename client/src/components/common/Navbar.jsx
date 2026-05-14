@@ -4,6 +4,7 @@ import { useAuth } from '../../hooks/useAuth';
 import messagesAPI       from '../../api/messages';
 import NotificationBell  from './NotificationBell';
 import MessagesDropdown  from './MessagesDropdown';
+import Avatar            from './Avatar';
 
 export default function Navbar() {
   const { user, isAuthenticated, isBusiness, isIndividual, isProfessional, isAdmin, isManager, logout } = useAuth();
@@ -92,7 +93,7 @@ export default function Navbar() {
               {/* User dropdown */}
               <div ref={dropdownRef} style={{ position: 'relative' }}>
                 <button style={s.avatarBtn} onClick={() => setMenuOpen(p => !p)}>
-                  <div style={s.avatar}>{user?.name?.[0]}</div>
+                  <Avatar src={user?.avatar} name={user?.name || ''} size={28} />
                   <span style={s.avatarName}>{displayName?.split(' ')[0]}</span>
                   <span style={{ fontSize: 10, color: '#9ca3af' }}>▼</span>
                 </button>
@@ -100,7 +101,7 @@ export default function Navbar() {
                 {menuOpen && (
                   <div style={s.dropdown}>
                     <div style={s.dropHeader}>
-                      <div style={s.dropAvatar}>{user?.name?.[0]}</div>
+                      <Avatar src={user?.avatar} name={user?.name || ''} size={36} />
                       <div>
                         <div style={s.dropName}>{user?.name}</div>
                         <div style={s.dropRole}>{roleLabel}</div>
@@ -171,11 +172,9 @@ const s = {
   loginBtn:     { fontSize: 14, color: '#374151', padding: '8px 14px', textDecoration: 'none' },
   registerBtn:  { fontSize: 14, background: '#2563eb', color: '#fff', padding: '8px 16px', borderRadius: 8, fontWeight: 500, textDecoration: 'none' },
   avatarBtn:    { display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', border: '1px solid #e5e7eb', borderRadius: 10, background: '#fff', cursor: 'pointer', fontSize: 14 },
-  avatar:       { width: 28, height: 28, borderRadius: '50%', background: '#2563eb', color: '#fff', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 },
   avatarName:   { fontSize: 13, fontWeight: 500, color: '#374151', maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   dropdown:     { position: 'absolute', top: 'calc(100% + 8px)', right: 0, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, boxShadow: '0 8px 24px rgba(0,0,0,.1)', minWidth: 220, zIndex: 300, overflow: 'hidden' },
   dropHeader:   { display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px' },
-  dropAvatar:   { width: 36, height: 36, borderRadius: '50%', background: '#2563eb', color: '#fff', fontSize: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, flexShrink: 0 },
   dropName:     { fontSize: 14, fontWeight: 600 },
   dropRole:     { fontSize: 12, color: '#6b7280', marginTop: 2 },
   dropDivider:  { height: 1, background: '#f3f4f6', margin: '4px 0' },
