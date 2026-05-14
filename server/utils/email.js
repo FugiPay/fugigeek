@@ -1,16 +1,8 @@
 const { Resend } = require('resend');
 
+const resend   = new Resend(process.env.RESEND_API_KEY);
 const FROM     = process.env.RESEND_FROM_EMAIL || 'noreply@fugigeek.com';
 const BASE_URL = process.env.CLIENT_URL        || 'https://fugigeek-b7afc.web.app';
-
-// Lazy init — only instantiate when actually sending so missing key doesn't crash startup
-let _resend = null;
-const getResend = () => {
-  if (!_resend && process.env.RESEND_API_KEY) {
-    _resend = new Resend(process.env.RESEND_API_KEY);
-  }
-  return _resend;
-};
 
 // ── Generic send ─────────────────────────────────────────────────────────────
 const send = async ({ to, subject, html }) => {
@@ -19,7 +11,7 @@ const send = async ({ to, subject, html }) => {
     return;
   }
   try {
-    const result = await getResend().emails.send({
+    const result = await resend.emails.send({
       from: `Fugigeek <${FROM}>`,
       to,
       subject,
@@ -161,6 +153,30 @@ module.exports = {
       ${para(`Hi ${name}, we received a request to reset your password. This link expires in 30 minutes.`)}
       ${btn('Reset password', resetUrl)}
       ${para('<span style="font-size:13px;color:#9ca3af;">If you did not request this, you can safely ignore this email.</span>')}
+    `),
+  }),
+
+  // Proposal submission confirmation — sent to the professional
+  sendProposalSubmitted: (to, { professionalName, taskTitle, posterName, taskId }) => send({
+    to,
+    subject: `Proposal submitted — "${taskTitle}"`,
+    html: wrap(`
+      ${h2('Proposal submitted ✅')}
+      ${para(`Hi ${professionalName}, your proposal on <strong>"${taskTitle}"</strong> has been sent to ${posterName}.`)}
+      ${para('You will be notified as soon as the client responds. In the meantime, keep your profile updated to stand out.')}
+      ${btn('View task', `${BASE_URL}/listings/${taskId}`)}
+    `),
+  }),
+
+  // Proposal rejected — sent to professionals whose proposals were not selected
+  sendProposalRejected: (to, { professionalName, taskTitle }) => send({
+    to,
+    subject: `Proposal not selected — "${taskTitle}"`,
+    html: wrap(`
+      ${h2('Proposal not selected')}
+      ${para(`Hi ${professionalName}, thank you for submitting a proposal on <strong>"${taskTitle}"</strong>.`)}
+      ${para('The client has selected another professional for this task. Don\'t be discouraged — there are plenty of other opportunities on Fugigeek.')}
+      ${btn('Browse open tasks', `${BASE_URL}/listings`)}
     `),
   }),
 };

@@ -4,9 +4,9 @@ import { useAuth } from '../hooks/useAuth';
 
 export default function PaymentSuccess() {
   const [params]     = useSearchParams();
-  const { isBusiness, isIndividual } = useAuth();
+  const { isBusiness, isIndividual, isProfessional } = useAuth();
   const orderId      = params.get('orderId');
-  const dashPath     = (isBusiness || isIndividual) ? '/dashboard/business' : '/dashboard/professional';
+  const dashPath     = (isBusiness || isIndividual) ? '/dashboard/business' : isProfessional ? '/dashboard/professional' : '/dashboard/admin';
 
   return (
     <div style={s.page}>

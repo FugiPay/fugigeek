@@ -2,6 +2,7 @@ const { Conversation, Message } = require('../models/Message');
 const User                      = require('../models/User');
 const asyncHandler              = require('../utils/asyncHandler');
 const email                     = require('../utils/email');
+const notify                    = require('../utils/notify');
 
 // ── @GET /api/messages/conversations ─────────────────────────────────────────
 // Get all conversations for the current user
@@ -120,7 +121,7 @@ const sendMessage = asyncHandler(async (req, res) => {
     });
   }
 
-  // Email recipient (only if they haven't been active recently)
+  // Email recipient if they haven't been active recently
   const recipientUser = await User.findById(recipient).select('name email lastSeen');
   const fiveMinAgo    = Date.now() - 5 * 60 * 1000;
   if (recipientUser && new Date(recipientUser.lastSeen) < fiveMinAgo) {
@@ -130,6 +131,18 @@ const sendMessage = asyncHandler(async (req, res) => {
       conversationId: req.params.id,
     });
   }
+
+  // In-app notification — always send regardless of online status
+  const io = req.app.get('io');
+  notify(io, {
+    recipient: recipient,
+    type:      'new_message',
+    title:     `New message from ${req.user.name} 💬`,
+    body:      message.content.length > 60
+      ? message.content.slice(0, 60) + '…'
+      : message.content,
+    link:      `/messages?conv=${req.params.id}`,
+  });
 
   res.status(201).json({ success: true, message });
 });

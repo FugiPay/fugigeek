@@ -8,8 +8,9 @@ import { useCategories } from '../hooks/useCategories';
 export default function Home() {
   const { isAuthenticated, user } = useAuth();
   const { categories: CATEGORIES } = useCategories();
-  const dashboardPath = user?.role === 'business'
-    ? '/dashboard/business'
+  const dashboardPath =
+    (user?.role === 'admin'  || user?.role === 'manager')    ? '/dashboard/admin'
+    : (user?.role === 'business' || user?.role === 'individual') ? '/dashboard/business'
     : '/dashboard/professional';
 
   const { data: statsData } = useQuery(

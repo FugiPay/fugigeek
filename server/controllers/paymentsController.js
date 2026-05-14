@@ -2,6 +2,7 @@ const Order        = require('../models/Order');
 const asyncHandler = require('../utils/asyncHandler');
 const dpo          = require('../utils/dpo');
 const email        = require('../utils/email');
+const notify       = require('../utils/notify');
 
 // ── @POST /api/payments/create ────────────────────────────────────────────────
 const createPayment = asyncHandler(async (req, res) => {
@@ -40,6 +41,16 @@ const createPayment = asyncHandler(async (req, res) => {
     taskTitle:  order.task.title,
     amount:     order.amount,
     transRef,
+  });
+
+  // In-app notification to client
+  const io = req.app.get('io');
+  notify(io, {
+    recipient: order.client._id,
+    type:      'payment_initiated',
+    title:     'Payment initiated 💳',
+    body:      `Your payment of K${order.amount} for "${order.task.title}" is being processed.`,
+    link:      `/orders/${order._id}`,
   });
 
   res.json({ success: true, paymentUrl, transRef });
@@ -82,6 +93,22 @@ const verifyPayment = asyncHandler(async (req, res) => {
     });
 
     const io = req.app.get('io');
+    // Notify both parties in-app
+    notify(io, {
+      recipient: order.client._id,
+      type:      'payment_confirmed',
+      title:     'Payment confirmed ✅',
+      body:      `Your payment of K${order.amount} for "${order.task.title}" is confirmed. Work can now begin.`,
+      link:      `/orders/${order._id}`,
+    });
+    notify(io, {
+      recipient: order.professional._id,
+      type:      'payment_confirmed',
+      title:     'Payment received 💰',
+      body:      `Payment of K${order.amount} for "${order.task.title}" has been confirmed. You can start work now.`,
+      link:      `/orders/${order._id}`,
+    });
+
     if (io) io.to(order.professional._id.toString()).emit('payment_confirmed', { orderId: order._id });
 
     return res.redirect(`${process.env.CLIENT_URL}/payment/success?orderId=${order._id}`);

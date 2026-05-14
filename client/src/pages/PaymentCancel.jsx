@@ -3,11 +3,11 @@ import { useAuth } from '../hooks/useAuth';
 
 export default function PaymentCancel() {
   const [params]  = useSearchParams();
-  const { isBusiness, isIndividual } = useAuth();
+  const { isBusiness, isIndividual, isProfessional } = useAuth();
   const reason    = params.get('reason');
   const error     = params.get('error');
   const orderId   = params.get('orderId');
-  const dashPath  = (isBusiness || isIndividual) ? '/dashboard/business' : '/dashboard/professional';
+  const dashPath  = (isBusiness || isIndividual) ? '/dashboard/business' : isProfessional ? '/dashboard/professional' : '/dashboard/admin';
 
   const isCancelled = reason === 'cancelled';
 
