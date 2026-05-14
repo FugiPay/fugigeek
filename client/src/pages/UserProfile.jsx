@@ -105,21 +105,48 @@ export default function UserProfile() {
             <div style={s.card}>
               <h2 style={s.cardTitle}>Portfolio</h2>
               <div style={s.portfolioGrid}>
-                {user.professionalProfile.portfolio.map((p, i) => (
-                  <div key={i} style={s.portfolioCard}>
-                    {p.imageUrl && (
-                      <img src={p.imageUrl} alt={p.title}
-                        style={{ width: '100%', height: 180, objectFit: 'cover', borderRadius: '8px 8px 0 0' }} />
-                    )}
-                    <div style={s.portfolioBody}>
-                      {p.url
-                        ? <a href={p.url} target="_blank" rel="noreferrer" style={s.portfolioTitle}>{p.title}</a>
-                        : <div style={{ fontSize: 14, fontWeight: 600 }}>{p.title}</div>
-                      }
-                      {p.description && <p style={{ fontSize: 13, color: '#6b7280', marginTop: 6, lineHeight: 1.5 }}>{p.description}</p>}
+                {user.professionalProfile.portfolio.map((p, i) => {
+                  // Support both old single-image and new multi-image format
+                  const images = p.images?.length > 0
+                    ? p.images
+                    : p.imageUrl
+                    ? [{ url: p.imageUrl }]
+                    : [];
+                  return (
+                    <div key={i} style={s.portfolioCard}>
+                      {/* Image strip */}
+                      {images.length > 0 && (
+                        <div style={s.portfolioImgStrip}>
+                          {images.map((img, j) => (
+                            <img key={j} src={img.url} alt={`${p.title} ${j + 1}`}
+                              style={{
+                                width:      images.length === 1 ? '100%' : `calc(${100 / Math.min(images.length, 3)}% - 2px)`,
+                                height:     160,
+                                objectFit:  'cover',
+                                flexShrink: 0,
+                                display:    j > 2 ? 'none' : 'block',
+                              }} />
+                          ))}
+                          {images.length > 3 && (
+                            <div style={s.portfolioMoreOverlay}>+{images.length - 3}</div>
+                          )}
+                        </div>
+                      )}
+                      <div style={s.portfolioBody}>
+                        {p.url
+                          ? <a href={p.url} target="_blank" rel="noreferrer" style={s.portfolioTitle}>{p.title}</a>
+                          : <div style={{ fontSize: 14, fontWeight: 600 }}>{p.title}</div>
+                        }
+                        {images.length > 0 && (
+                          <span style={{ fontSize: 11, color: '#9ca3af' }}>{images.length} image{images.length !== 1 ? 's' : ''}</span>
+                        )}
+                        {p.description && (
+                          <p style={{ fontSize: 13, color: '#6b7280', marginTop: 6, lineHeight: 1.5 }}>{p.description}</p>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -243,11 +270,12 @@ const s = {
   body:          { fontSize: 14, color: '#374151', lineHeight: 1.8, whiteSpace: 'pre-wrap' },
   skills:        { display: 'flex', flexWrap: 'wrap', gap: 8 },
   skill:         { padding: '6px 14px', background: '#eff6ff', color: '#1d4ed8', borderRadius: 20, fontSize: 13 },
-  portfolioItem: { paddingBottom: 12, borderBottom: '1px solid #f3f4f6', marginBottom: 12 },
-  portfolioTitle:{ fontSize: 14, fontWeight: 600, color: '#2563eb' },
-  portfolioGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16 },
-  portfolioCard: { border: '1px solid #e5e7eb', borderRadius: 10, overflow: 'hidden', background: '#fff' },
-  portfolioBody: { padding: 14 },
+  portfolioGrid:        { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16 },
+  portfolioCard:        { border: '1px solid #e5e7eb', borderRadius: 10, overflow: 'hidden', background: '#fff' },
+  portfolioImgStrip:    { display: 'flex', height: 160, overflow: 'hidden', position: 'relative', gap: 2, background: '#f3f4f6' },
+  portfolioMoreOverlay: { position: 'absolute', right: 0, bottom: 0, background: 'rgba(0,0,0,.55)', color: '#fff', fontSize: 14, fontWeight: 700, padding: '4px 10px', borderTopLeftRadius: 6 },
+  portfolioBody:        { padding: 14 },
+  portfolioTitle:       { fontSize: 14, fontWeight: 600, color: '#2563eb', textDecoration: 'none' },
   certItem:      { padding: '8px 0', borderBottom: '1px solid #f3f4f6' },
   review:        { padding: '16px 0', borderBottom: '1px solid #f3f4f6' },
   reviewTop:     { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 },

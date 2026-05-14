@@ -61,8 +61,7 @@ const userSchema = new mongoose.Schema(
       portfolio:      [{
         title:       String,
         url:         String,   // link to project (optional)
-        imageUrl:    String,   // S3 image URL
-        imageKey:    String,   // S3 key for deletion
+        images:      [{ url: String, key: String }],  // multiple images
         description: String,
       }],
       certifications: [{ name: String, issuer: String, year: Number }],
