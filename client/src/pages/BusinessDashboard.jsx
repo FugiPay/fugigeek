@@ -23,11 +23,20 @@ const statusBg = s => ({
   submitted:       '#ede9fe',
 }[s] || '#f3f4f6');
 
+const statusLabel = s => ({
+  open:            'Open',
+  'in-progress':   'In Progress',
+  completed:       'Completed',
+  cancelled:       'Cancelled',
+  pending_payment: 'Awaiting Payment',
+  submitted:       'Under Review',
+}[s] || s);
+
 export default function BusinessDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const { data: tasksData  } = useQuery('myTasks',  () => listingsAPI.getMyTasks().then(r => r.data));
+  const { data: tasksData, refetch: refetchTasks } = useQuery('myTasks', () => listingsAPI.getMyTasks().then(r => r.data));
   const { data: ordersData } = useQuery('myOrders', () => ordersAPI.getAll().then(r => r.data));
 
   const tasks  = tasksData?.tasks  || [];
@@ -103,11 +112,33 @@ export default function BusinessDashboard() {
                       <td style={s.td}>{task.proposalCount}</td>
                       <td style={s.td}>
                         <span style={{ ...s.statusBadge, background: statusBg(task.status), color: statusColor(task.status) }}>
-                          {task.status}
+                          {statusLabel(task.status)}
                         </span>
                       </td>
                       <td style={s.td}>
-                        <Link to={`/listings/${task._id}/proposals`} style={s.actionLink}>View proposals</Link>
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                          {task.status === 'open' && (
+                            <>
+                              <Link to={`/listings/${task._id}/proposals`} style={s.actionLink}>Proposals</Link>
+                              <Link to={`/listings/${task._id}/edit`} style={{ ...s.actionLink, color: '#374151' }}>Edit</Link>
+                            </>
+                          )}
+                          {task.status === 'in-progress' && (
+                            <Link to={`/listings/${task._id}/proposals`} style={s.actionLink}>View order</Link>
+                          )}
+                          {task.status === 'cancelled' && (
+                            <button style={{ ...s.actionLink, background: 'none', border: 'none', cursor: 'pointer', color: '#16a34a' }}
+                              onClick={async () => {
+                                await listingsAPI.update(task._id, { status: 'open' });
+                                refetchTasks();
+                              }}>
+                              Reopen
+                            </button>
+                          )}
+                          {task.status === 'completed' && (
+                            <Link to={`/listings/${task._id}`} style={{ ...s.actionLink, color: '#6b7280' }}>View</Link>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}

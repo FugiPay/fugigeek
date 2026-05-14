@@ -1,3 +1,4 @@
+import { usePageTitle } from '../hooks/usePageTitle';
 import { Link } from 'react-router-dom';
 import { useQuery } from 'react-query';
 import { useAuth } from '../hooks/useAuth';
@@ -6,6 +7,7 @@ import api from '../api/axios';
 import { useCategories } from '../hooks/useCategories';
 
 export default function Home() {
+  usePageTitle('Connect Businesses with Professionals');
   const { isAuthenticated, user } = useAuth();
   const { categories: CATEGORIES } = useCategories();
   const dashboardPath =

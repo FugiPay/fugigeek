@@ -6,6 +6,7 @@ const listingsAPI = {
   create:         data          => api.post('/listings', data),
   update:         (id, data)    => api.put(`/listings/${id}`, data),
   remove:         id            => api.delete(`/listings/${id}`),
+  cancel:         (id, reason)  => api.put(`/listings/${id}/cancel`, { reason }),
   upload:         (id, files)   => {
     const form = new FormData();
     files.forEach(f => form.append('files', f));

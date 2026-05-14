@@ -1,3 +1,4 @@
+import { usePageTitle } from '../hooks/usePageTitle';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from 'react-query';
 import usersAPI    from '../api/users';
@@ -20,6 +21,7 @@ export default function UserProfile() {
   );
 
   const user    = data?.user;
+  usePageTitle(user?.name);
   const reviews = data?.reviews || [];
 
   if (isLoading) return <div style={s.center}>Loading profile…</div>;

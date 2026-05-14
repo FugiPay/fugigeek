@@ -1,6 +1,7 @@
+import { usePageTitle } from '../hooks/usePageTitle';
 import { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { useQuery } from 'react-query';
+import { useQuery, useMutation, useQueryClient } from 'react-query';
 import listingsAPI from '../api/listings';
 import { useAuth } from '../hooks/useAuth';
 import Avatar from '../components/common/Avatar';
@@ -9,15 +10,34 @@ export default function ListingDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user, isAuthenticated, isBusiness, isProfessional } = useAuth();
-  const [proposal, setProposal] = useState({ bidAmount: '', bidType: 'fixed', coverLetter: '', timeline: '' });
-  const [submitting, setSubmitting] = useState(false);
-  const [submitted,  setSubmitted]  = useState(false);
-  const [propError,  setPropError]  = useState('');
 
+  // All hooks at the top — before any early returns
+  const [proposal,     setProposal]     = useState({ bidAmount: '', bidType: 'fixed', coverLetter: '', timeline: '' });
+  const [submitting,   setSubmitting]   = useState(false);
+  const [submitted,    setSubmitted]    = useState(false);
+  const [propError,    setPropError]    = useState('');
+  const [showCancel,   setShowCancel]   = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+
+  const qc = useQueryClient();
   const { data, isLoading } = useQuery(['task', id], () => listingsAPI.getOne(id).then(r => r.data));
   const task = data?.task;
+  usePageTitle(task?.title);
 
-  const onProposalChange = e => setProposal(p => ({ ...p, [e.target.name]: e.target.value }));
+  const cancelMutation = useMutation(
+    () => listingsAPI.cancel(task?._id, cancelReason),
+    {
+      onSuccess: () => {
+        qc.invalidateQueries(['task', id]);
+        setShowCancel(false);
+      },
+    }
+  );
+
+  const reopenMutation = useMutation(
+    () => listingsAPI.update(id, { status: 'open' }),
+    { onSuccess: () => qc.invalidateQueries(['task', id]) }
+  );
 
   const submitProposal = async e => {
     e.preventDefault();
@@ -34,7 +54,8 @@ export default function ListingDetail() {
   if (isLoading) return <div style={s.center}>Loading task…</div>;
   if (!task)     return <div style={s.center}>Task not found.</div>;
 
-  const isOwner    = user?._id === task.postedBy?._id;
+  const isOwner    = user?._id?.toString() === task.postedBy?._id?.toString() ||
+                     user?._id?.toString() === task.postedBy?.toString();
   const canPropose = isProfessional && task.status === 'open' && !isOwner;
 
   return (
@@ -191,8 +212,66 @@ export default function ListingDetail() {
           {isOwner && (
             <div style={s.sideCard}>
               <h3 style={s.sideTitle}>Manage task</h3>
-              <Link to={`/listings/${task._id}/proposals`} style={s.mngBtn}>View proposals ({task.proposalCount})</Link>
-              <Link to={`/listings/${task._id}/edit`}      style={{ ...s.mngBtn, background: '#f9fafb', color: '#374151', border: '1px solid #e5e7eb', marginTop: 8 }}>Edit task</Link>
+
+              {task.status === 'cancelled' && (
+                <div style={{ background: '#fee2e2', borderRadius: 8, padding: '10px 12px', marginBottom: 10, fontSize: 13, color: '#b91c1c' }}>
+                  ❌ This task is cancelled and not visible to professionals.
+                </div>
+              )}
+
+              {task.status !== 'cancelled' && (
+                <Link to={`/listings/${task._id}/proposals`} style={s.mngBtn}>
+                  View proposals ({task.proposalCount})
+                </Link>
+              )}
+              {['open', 'in-progress'].includes(task.status) && (
+                <Link to={`/listings/${task._id}/edit`}
+                  style={{ ...s.mngBtn, background: '#f9fafb', color: '#374151', border: '1px solid #e5e7eb', marginTop: 8 }}>
+                  Edit task
+                </Link>
+              )}
+              {['open', 'in-progress'].includes(task.status) && !showCancel && (
+                <button
+                  style={{ ...s.mngBtn, background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', marginTop: 8, cursor: 'pointer' }}
+                  onClick={() => setShowCancel(true)}>
+                  Cancel task
+                </button>
+              )}
+
+              {/* Reopen cancelled task */}
+              {task.status === 'cancelled' && (
+                <button
+                  style={{ ...s.mngBtn, background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', marginTop: 8, cursor: 'pointer' }}
+                  onClick={() => reopenMutation.mutate()}
+                  disabled={reopenMutation.isLoading}>
+                  {reopenMutation.isLoading ? 'Reopening…' : '↩ Reopen task'}
+                </button>
+              )}
+              {showCancel && (
+                <div style={{ marginTop: 12, padding: 12, background: '#fef2f2', borderRadius: 8, border: '1px solid #fecaca' }}>
+                  <p style={{ fontSize: 13, color: '#b91c1c', marginBottom: 8 }}>
+                    Are you sure? This will notify any professionals who submitted proposals.
+                  </p>
+                  <textarea
+                    style={{ width: '100%', padding: '8px 10px', border: '1px solid #fecaca', borderRadius: 6, fontSize: 13, resize: 'none', fontFamily: 'inherit', marginBottom: 8 }}
+                    rows={2} placeholder="Reason for cancelling (optional)"
+                    value={cancelReason} onChange={e => setCancelReason(e.target.value)}
+                  />
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button
+                      style={{ flex: 1, padding: '8px 0', background: '#dc2626', color: '#fff', border: 'none', borderRadius: 6, fontSize: 13, cursor: 'pointer' }}
+                      onClick={() => cancelMutation.mutate()}
+                      disabled={cancelMutation.isLoading}>
+                      {cancelMutation.isLoading ? 'Cancelling…' : 'Confirm cancel'}
+                    </button>
+                    <button
+                      style={{ flex: 1, padding: '8px 0', background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: 6, fontSize: 13, cursor: 'pointer' }}
+                      onClick={() => { setShowCancel(false); setCancelReason(''); }}>
+                      Keep task
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </aside>

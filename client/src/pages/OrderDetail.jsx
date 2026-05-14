@@ -1,3 +1,4 @@
+import { usePageTitle } from '../hooks/usePageTitle';
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
@@ -14,6 +15,7 @@ export default function OrderDetail() {
 
   const { data, isLoading } = useQuery(['order', id], () => ordersAPI.getOne(id).then(r => r.data));
   const order = data?.order;
+  usePageTitle(order?.task?.title);
 
   const payMutation = useMutation(
     () => paymentsAPI.create(id),
