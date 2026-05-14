@@ -32,15 +32,21 @@ io.on('connection', socket => {
   socket.on('disconnect', () => console.log('Socket disconnected:', socket.id));
 });
  
+// ── Trust proxy (required on Render/Heroku/Railway) ───────────────────────
+app.set('trust proxy', 1);
+
 // ── Core middleware ────────────────────────────────────────────────────────
 app.use(cors({ origin: process.env.CLIENT_URL, credentials: true }));
-// Stripe webhooks need raw body
-app.use('/api/payments/webhook', express.raw({ type: 'application/json' }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // ── Rate limiting ─────────────────────────────────────────────────────────
-app.use('/api', rateLimit({ windowMs: 15 * 60 * 1000, max: 100 }));
+app.use('/api', rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max:      100,
+  standardHeaders: true,
+  legacyHeaders:   false,
+}));
 
 // ── Routes ────────────────────────────────────────────────────────────────
 app.use('/api/auth',          require('./routes/auth'));

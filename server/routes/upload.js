@@ -8,11 +8,23 @@ const {
   deletePortfolioImage,
 } = require('../controllers/uploadController');
 
-// Avatar — single image, max 2MB
-router.post('/avatar',    protect, upload.single('avatar'),    uploadAvatar);
+// Multer error handler wrapper — catches S3/multer errors and returns JSON
+const handleUpload = (fieldName) => (req, res, next) => {
+  upload.single(fieldName)(req, res, (err) => {
+    if (err) {
+      console.error('Multer/S3 upload error:', err.message, err.code || '');
+      return res.status(500).json({
+        success: false,
+        message: err.message || 'File upload failed',
+        code:    err.code,
+      });
+    }
+    next();
+  });
+};
 
-// Portfolio image — single image, returns URL to use in profile
-router.post('/portfolio', protect, upload.single('image'),     uploadPortfolioImage);
-router.delete('/portfolio', protect,                            deletePortfolioImage);
+router.post('/avatar',      protect, handleUpload('avatar'),  uploadAvatar);
+router.post('/portfolio',   protect, handleUpload('image'),   uploadPortfolioImage);
+router.delete('/portfolio', protect,                          deletePortfolioImage);
 
 module.exports = router;
