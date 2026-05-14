@@ -2,10 +2,12 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from 'react-query';
 import usersAPI from '../api/users';
 import { useAuth } from '../hooks/useAuth';
+import Avatar from '../components/common/Avatar';
 
 export default function ViewProfile() {
-  const { user: authUser, isBusiness, isProfessional } = useAuth();
+  const { user: authUser, isBusiness, isProfessional, isAdmin, isManager } = useAuth();
   const navigate = useNavigate();
+  const isStaff  = isAdmin || isManager;
 
   const { data, isLoading } = useQuery(
     ['user', authUser?._id],
@@ -22,7 +24,7 @@ export default function ViewProfile() {
   const isPro = user.role === 'professional';
   const isBiz = user.role === 'business';
 
-  const dashboardPath = isBusiness ? '/dashboard/business' : '/dashboard/professional';
+  const dashboardPath = isStaff ? '/dashboard/admin' : isBusiness ? '/dashboard/business' : '/dashboard/professional';
 
   return (
     <div style={s.page}>
@@ -45,7 +47,7 @@ export default function ViewProfile() {
 
           {/* Hero card */}
           <div style={s.heroCard}>
-            <div style={s.avatar}>{user.name[0]}</div>
+            <Avatar src={user.avatar} name={user.name} size={72} />
             <div style={s.identity}>
               <h1 style={s.name}>{user.name}</h1>
               {isPro && user.professionalProfile?.headline && (

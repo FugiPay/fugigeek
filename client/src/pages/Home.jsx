@@ -3,20 +3,11 @@ import { useQuery } from 'react-query';
 import { useAuth } from '../hooks/useAuth';
 import Footer from '../components/common/Footer';
 import api from '../api/axios';
-
-const CATEGORIES = [
-  { icon: '💻', label: 'Web Development' },
-  { icon: '📱', label: 'Mobile Development' },
-  { icon: '🎨', label: 'Design & Creative' },
-  { icon: '📣', label: 'Digital Marketing' },
-  { icon: '✍️', label: 'Content & Writing' },
-  { icon: '📊', label: 'Data & Analytics' },
-  { icon: '💰', label: 'Finance & Accounting' },
-  { icon: '⚖️', label: 'Legal & Compliance' },
-];
+import { useCategories } from '../hooks/useCategories';
 
 export default function Home() {
   const { isAuthenticated, user } = useAuth();
+  const { categories: CATEGORIES } = useCategories();
   const dashboardPath = user?.role === 'business'
     ? '/dashboard/business'
     : '/dashboard/professional';
@@ -112,9 +103,9 @@ export default function Home() {
           <p style={s.sectionSub}>From tech to creative, legal to finance — whatever you need, we have the professional for it.</p>
           <div style={s.catGrid}>
             {CATEGORIES.map(c => (
-              <Link key={c.label} to={`/listings?category=${encodeURIComponent(c.label)}`} style={s.catCard}>
+              <Link key={c.name} to={`/listings?category=${encodeURIComponent(c.name)}`} style={s.catCard}>
                 <span style={{ fontSize: 32 }}>{c.icon}</span>
-                <span style={{ fontSize: 14, fontWeight: 500 }}>{c.label}</span>
+                <span style={{ fontSize: 14, fontWeight: 500 }}>{c.name}</span>
               </Link>
             ))}
           </div>

@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery } from 'react-query';
 import listingsAPI from '../api/listings';
 import { useAuth } from '../hooks/useAuth';
+import Avatar from '../components/common/Avatar';
 
 export default function ListingDetail() {
   const { id } = useParams();
@@ -160,7 +161,7 @@ export default function ListingDetail() {
           <div style={s.sideCard}>
             <h3 style={s.sideTitle}>Posted by</h3>
             <div style={s.bizRow}>
-              <div style={s.bizAvatar}>{task.postedBy?.name?.[0]}</div>
+              <Avatar src={task.postedBy?.avatar} name={task.postedBy?.name} size={40} />
               <div>
                 <div style={{ fontWeight: 600, fontSize: 14 }}>{task.postedBy?.businessProfile?.companyName || task.postedBy?.name}</div>
                 <div style={{ fontSize: 12, color: '#6b7280' }}>{task.postedBy?.businessProfile?.industry}</div>

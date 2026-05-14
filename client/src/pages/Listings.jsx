@@ -4,12 +4,7 @@ import { useQuery } from 'react-query';
 import listingsAPI from '../api/listings';
 import { useAuth } from '../hooks/useAuth';
 import { SkeletonGrid, EmptyState } from '../components/common/Skeletons';
-
-const CATEGORIES = [
-  'All','Web Development','Mobile Development','Design & Creative','Digital Marketing',
-  'Content & Writing','Data & Analytics','Finance & Accounting','Legal & Compliance',
-  'HR & Recruitment','Sales & Business Dev','Project Management','Engineering','Operations','Other',
-];
+import { useCategories } from '../hooks/useCategories';
 
 const statusBadge = s => ({
   open:        { background: '#dcfce7', color: '#15803d' },
@@ -19,6 +14,8 @@ const statusBadge = s => ({
 
 export default function Listings() {
   const { isAuthenticated, isBusiness } = useAuth();
+  const { names: categoryNames } = useCategories();
+  const CATEGORIES = ['All', ...categoryNames];
   const [searchParams, setSearchParams] = useSearchParams();
   const [search,   setSearch]   = useState('');
   const [category, setCategory] = useState(searchParams.get('category') || '');

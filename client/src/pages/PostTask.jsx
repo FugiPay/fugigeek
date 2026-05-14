@@ -2,13 +2,8 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import listingsAPI from '../api/listings';
 import { useAuth } from '../hooks/useAuth';
+import { useCategories } from '../hooks/useCategories';
 
-const CATEGORIES = [
-  'Web Development','Mobile Development','Design & Creative','Digital Marketing',
-  'Content & Writing','Data & Analytics','Finance & Accounting','Legal & Compliance',
-  'HR & Recruitment','Sales & Business Dev','Project Management','IT & Networking',
-  'Engineering','Operations','Other',
-];
 const SKILLS = [
   'Project Management','Web Development','Graphic Design','Content Writing','Data Analysis',
   'Digital Marketing','Financial Consulting','Legal Advisory','HR & Recruitment','Sales Strategy',
@@ -18,6 +13,7 @@ const SKILLS = [
 export default function PostTask() {
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
+  const { names: CATEGORIES } = useCategories();
   const dashPath = user?.role === 'professional'
     ? '/dashboard/professional'
     : '/dashboard/business';

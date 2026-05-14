@@ -74,7 +74,10 @@ export default function OrderDetail() {
   };
   const sc = statusColors[order.status] || { bg: '#f3f4f6', fg: '#6b7280' };
 
-  const dashPath = isProfessional ? '/dashboard/professional' : '/dashboard/business';
+  const dashPath =
+    (user?.role === 'admin' || user?.role === 'manager') ? '/dashboard/admin'
+    : isProfessional ? '/dashboard/professional'
+    : '/dashboard/business';
 
   return (
     <div style={s.page}>

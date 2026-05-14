@@ -11,7 +11,8 @@ const userSchema = new mongoose.Schema(
       match: [/^\S+@\S+\.\S+$/, 'Please enter a valid email'],
     },
     password: { type: String, required: [true, 'Password is required'], minlength: 8, select: false },
-    avatar:   { type: String, default: '' },
+    avatar:    { type: String, default: '' },
+    avatarKey: { type: String, default: '' }, // S3 key for deletion
     phone:    { type: String, trim: true, default: '' }, // shared across all roles
 
     // ── Role ────────────────────────────────────────────────────────────────
@@ -57,7 +58,13 @@ const userSchema = new mongoose.Schema(
         default: 'contract',
       },
       location:       { type: String, trim: true },
-      portfolio:      [{ title: String, url: String, description: String }],
+      portfolio:      [{
+        title:       String,
+        url:         String,   // link to project (optional)
+        imageUrl:    String,   // S3 image URL
+        imageKey:    String,   // S3 key for deletion
+        description: String,
+      }],
       certifications: [{ name: String, issuer: String, year: Number }],
       languages:      [{
         language:    String,

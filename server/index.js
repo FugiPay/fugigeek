@@ -45,6 +45,7 @@ app.use('/api', rateLimit({ windowMs: 15 * 60 * 1000, max: 100 }));
 // ── Routes ────────────────────────────────────────────────────────────────
 app.use('/api/auth',          require('./routes/auth'));
 app.use('/api/admin',         require('./routes/admin'));
+app.use('/api/upload',        require('./routes/upload'));
 app.use('/api/listings',      require('./routes/listings'));
 app.use('/api/orders',        require('./routes/orders'));
 app.use('/api/payments',      require('./routes/payments'));

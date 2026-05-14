@@ -100,8 +100,11 @@ export default function Messages() {
         <div style={s.navInner}>
           <Link to="/" style={s.logo}>Fugigeek</Link>
           <span style={s.navTitle}>Messages</span>
-          <Link to={user?.role === 'business' ? '/dashboard/business' : '/dashboard/professional'}
-            style={{ fontSize: 14, color: '#374151' }}>← Dashboard</Link>
+          <Link to={
+            (user?.role === 'admin' || user?.role === 'manager') ? '/dashboard/admin'
+            : (user?.role === 'business' || user?.role === 'individual') ? '/dashboard/business'
+            : '/dashboard/professional'
+          } style={{ fontSize: 14, color: '#374151' }}>← Dashboard</Link>
         </div>
       </nav>
 

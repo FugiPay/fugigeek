@@ -4,10 +4,12 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import listingsAPI from '../api/listings';
 import ordersAPI   from '../api/orders';
 import messagesAPI from '../api/messages';
+import { useAuth } from '../hooks/useAuth';
 
 export default function Proposals() {
   const { id }    = useParams();
   const navigate  = useNavigate();
+  const { user }  = useAuth();
   const qc        = useQueryClient();
   const [selected, setSelected] = useState(null);
   const [msg,      setMsg]      = useState('');
@@ -46,7 +48,11 @@ export default function Proposals() {
   return (
     <div style={s.page}>
       <div style={s.breadcrumb}>
-        <Link to="/dashboard/business" style={s.breadLink}>← Dashboard</Link>
+        <Link to={
+          (user?.role === 'admin' || user?.role === 'manager') ? '/dashboard/admin'
+          : user?.role === 'professional' ? '/dashboard/professional'
+          : '/dashboard/business'
+        } style={s.breadLink}>← Dashboard</Link>
         <span style={s.sep}>·</span>
         <Link to={`/listings/${id}`}   style={s.breadLink}>{task?.title}</Link>
         <span style={s.sep}>·</span>
