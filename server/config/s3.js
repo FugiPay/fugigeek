@@ -6,13 +6,13 @@ const crypto   = require('crypto');
 
 // ── S3 client ─────────────────────────────────────────────────────────────
 const s3 = new S3Client({
-  region: process.env.AWS_REGION,
-  endpoint: `https://s3.${process.env.AWS_REGION}.amazonaws.com`,
-  forcePathStyle: false,
+  region: process.env.AWS_REGION || 'eu-north-1',
   credentials: {
     accessKeyId:     process.env.AWS_ACCESS_KEY_ID,
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
   },
+  // Required for non us-east-1 buckets to prevent PermanentRedirect
+  followRegionRedirects: true,
 });
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
