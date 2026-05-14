@@ -1,8 +1,10 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
 import { useAuth } from '../hooks/useAuth';
 import uploadAPI from '../api/upload';
 import Avatar from '../components/common/Avatar';
+import { setCredentials } from '../store/slices/authSlice';
 
 const SKILLS = [
   'Project Management','Web Development','Graphic Design','Content Writing','Data Analysis',
@@ -13,11 +15,17 @@ const INDUSTRIES = ['Technology','Finance','Healthcare','Education','Marketing',
 
 export default function ProfileEdit() {
   const { user, updateProfile, loading, error, isBusiness, isProfessional, isAdmin, isManager } = useAuth();
-  const isStaff = isAdmin || isManager;
-  const [saved,         setSaved]         = useState(false);
+  const dispatch = useDispatch();
+  const isStaff  = isAdmin || isManager;
+  const [saved,           setSaved]           = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarPreview,   setAvatarPreview]   = useState(user?.avatar || '');
   const avatarInputRef = useRef(null);
+
+  // Keep preview in sync with store (e.g. after Redux updates)
+  useEffect(() => {
+    if (user?.avatar) setAvatarPreview(user.avatar);
+  }, [user?.avatar]);
 
   const [form, setForm] = useState({
     name:  user?.name  || '',
@@ -50,15 +58,35 @@ export default function ProfileEdit() {
     const file = e.target.files?.[0];
     if (!file) return;
     setAvatarUploading(true);
+
+    // Show instant local preview
+    const localUrl = URL.createObjectURL(file);
+    setAvatarPreview(localUrl);
+
     try {
-      setAvatarPreview(URL.createObjectURL(file)); // instant preview
-      const { data } = await uploadAPI.avatar(file);
-      setAvatarPreview(data.avatar);
-      // Update user in redux store
-      await updateProfile({ name: form.name });
+      const response = await uploadAPI.avatar(file);
+      console.log('=== UPLOAD RESPONSE ===', response.data);
+      const newAvatarUrl = response.data.avatar;
+      console.log('New avatar URL:', newAvatarUrl);
+
+      if (!newAvatarUrl) {
+        console.error('No avatar URL returned from server');
+        setAvatarPreview(user?.avatar || '');
+        return;
+      }
+
+      setAvatarPreview(newAvatarUrl);
+      const token = localStorage.getItem('tb_token');
+      dispatch(setCredentials({
+        user:  { ...user, avatar: newAvatarUrl },
+        token,
+      }));
     } catch (err) {
       console.error('Avatar upload failed:', err);
-    } finally { setAvatarUploading(false); }
+      setAvatarPreview(user?.avatar || ''); // revert on error
+    } finally {
+      setAvatarUploading(false);
+    }
   };
 
   // ── Portfolio image upload ────────────────────────────────────────────────────

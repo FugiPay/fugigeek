@@ -5,19 +5,23 @@ const { deleteFromS3 } = require('../config/s3');
 // ── @POST /api/upload/avatar ──────────────────────────────────────────────────
 // Upload profile picture — replaces existing
 const uploadAvatar = asyncHandler(async (req, res) => {
+  console.log('=== UPLOAD AVATAR ===');
+  console.log('req.file:', JSON.stringify(req.file, null, 2));
+  console.log('req.user:', req.user?._id);
+
   if (!req.file) { res.status(400); throw new Error('No file uploaded'); }
 
   const user = await User.findById(req.user._id);
 
-  // Delete old avatar from S3 if it exists
   if (user.avatarKey) {
-    await deleteFromS3(user.avatarKey).catch(() => {}); // silent fail
+    await deleteFromS3(user.avatarKey).catch(err => console.log('S3 delete error:', err.message));
   }
 
-  user.avatar    = req.file.location;  // S3 public URL
-  user.avatarKey = req.file.key;       // S3 key for future deletion
+  user.avatar    = req.file.location;
+  user.avatarKey = req.file.key;
   await user.save({ validateBeforeSave: false });
 
+  console.log('Saved avatar URL:', user.avatar);
   res.json({ success: true, avatar: user.avatar });
 });
 
