@@ -5,16 +5,14 @@ const LINKS = {
     { label: 'Browse Tasks',       path: '/listings' },
     { label: 'Find Professionals', path: '/users/professionals' },
     { label: 'Post a Task',        path: '/tasks/new' },
-  ],
-  Company: [
-    { label: 'About',      path: '/about' },
-    { label: 'Contact',    path: '/contact' },
-    { label: 'Blog',       path: '/blog' },
+    { label: 'Sign up',            path: '/register' },
   ],
   Legal: [
-    { label: 'Privacy Policy',  path: '/privacy' },
+    { label: 'Privacy Policy',   path: '/privacy' },
     { label: 'Terms of Service', path: '/terms' },
-    { label: 'Cookie Policy',   path: '/cookies' },
+  ],
+  Support: [
+    { label: 'Contact us', href: 'mailto:hello@fugipay.com' },
   ],
 };
 
@@ -40,7 +38,9 @@ export default function Footer() {
           <div key={group} style={s.col}>
             <div style={s.colTitle}>{group}</div>
             {links.map(l => (
-              <Link key={l.path} to={l.path} style={s.link}>{l.label}</Link>
+              l.href
+                ? <a key={l.href} href={l.href} style={s.link}>{l.label}</a>
+                : <Link key={l.path} to={l.path} style={s.link}>{l.label}</Link>
             ))}
           </div>
         ))}

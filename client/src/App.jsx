@@ -5,6 +5,8 @@ import Navbar  from './components/common/Navbar';
 import Home                   from './pages/Home';
 import Login                  from './pages/Login';
 import Register               from './pages/Register';
+import Privacy                from './pages/Privacy';
+import Terms                  from './pages/Terms';
 import ForgotPassword         from './pages/ForgotPassword';
 import ResetPassword          from './pages/ResetPassword';
 import PaymentSuccess         from './pages/PaymentSuccess';
@@ -54,6 +56,8 @@ export default function App() {
         <Route path="/"                       element={<Home />} />
         <Route path="/login"                  element={<Login />} />
         <Route path="/register"               element={<Register />} />
+        <Route path="/privacy"                element={<Privacy />} />
+        <Route path="/terms"                  element={<Terms />} />
         <Route path="/listings"               element={<Listings />} />
         <Route path="/listings/:id"           element={<ListingDetail />} />
         <Route path="/listings/:id/proposals" element={<PrivateRoute><Proposals /></PrivateRoute>} />

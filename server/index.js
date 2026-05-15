@@ -79,7 +79,7 @@ app.get('/api/health', (_, res) => res.json({ status: 'ok', platform: 'Fugigeek'
 app.get('/api/categories', async (_, res) => {
   try {
     const Category = require('./models/Category');
-    const categories = await Category.find({ isActive: true }).sort('order name').select('name icon');
+    const categories = await Category.find({ isActive: true }).sort('order name').select('name icon iconImg');
     res.json({ success: true, categories });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

@@ -1,10 +1,166 @@
+import { usePageTitle } from '../hooks/usePageTitle';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from 'react-query';
 import usersAPI from '../api/users';
 import { useAuth } from '../hooks/useAuth';
 import Avatar from '../components/common/Avatar';
 
+// ── Portfolio gallery + lightbox carousel ─────────────────────────────────────
+function PortfolioSection({ items }) {
+  const [lightbox, setLightbox] = useState(null); // { itemIdx, imgIdx }
+
+  const getImages = item =>
+    item.images?.length > 0
+      ? item.images
+      : item.imageUrl
+      ? [{ url: item.imageUrl }]
+      : [];
+
+  const allImages = items.flatMap((item, ii) =>
+    getImages(item).map((img, ji) => ({ ...img, title: item.title, itemIdx: ii, imgIdx: ji }))
+  );
+
+  const openLightbox = (itemIdx, imgIdx) => setLightbox({ itemIdx, imgIdx });
+
+  const currentFlat = lightbox
+    ? allImages.findIndex(i => i.itemIdx === lightbox.itemIdx && i.imgIdx === lightbox.imgIdx)
+    : -1;
+
+  const goTo = offset => {
+    const next = (currentFlat + offset + allImages.length) % allImages.length;
+    setLightbox({ itemIdx: allImages[next].itemIdx, imgIdx: allImages[next].imgIdx });
+  };
+
+  return (
+    <>
+      <div style={ps.card}>
+        <div style={ps.header}>
+          <h2 style={ps.cardTitle}>Portfolio</h2>
+          <span style={ps.count}>{items.length} project{items.length !== 1 ? 's' : ''}</span>
+        </div>
+
+        {/* Project cards */}
+        <div style={ps.grid}>
+          {items.map((item, ii) => {
+            const images = getImages(item);
+            const cover  = images[0];
+            return (
+              <div key={ii} style={ps.projectCard}>
+                {/* Cover image — clickable */}
+                <div style={ps.coverWrap} onClick={() => images.length && openLightbox(ii, 0)}>
+                  {cover
+                    ? <img src={cover.url} alt={item.title} style={ps.coverImg} />
+                    : <div style={ps.coverPlaceholder}>
+                        <span style={{ fontSize: 36 }}>🖼</span>
+                        <span style={{ fontSize: 12, color: '#9ca3af', marginTop: 6 }}>No images</span>
+                      </div>
+                  }
+                  {images.length > 1 && (
+                    <div style={ps.imageBadge}>
+                      🖼 {images.length}
+                    </div>
+                  )}
+                  {images.length > 0 && (
+                    <div style={ps.coverOverlay}>
+                      <span style={ps.viewLabel}>View gallery</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Thumbnail strip */}
+                {images.length > 1 && (
+                  <div style={ps.thumbStrip}>
+                    {images.slice(0, 4).map((img, ji) => (
+                      <div key={ji} style={ps.thumbWrap} onClick={() => openLightbox(ii, ji)}>
+                        <img src={img.url} alt="" style={ps.thumb} />
+                        {ji === 3 && images.length > 4 && (
+                          <div style={ps.thumbMore}>+{images.length - 4}</div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Info */}
+                <div style={ps.info}>
+                  <div style={ps.titleRow}>
+                    <span style={ps.projectTitle}>{item.title}</span>
+                    {item.url && (
+                      <a href={item.url} target="_blank" rel="noreferrer" style={ps.linkBtn}>
+                        🔗 Visit
+                      </a>
+                    )}
+                  </div>
+                  {item.description && (
+                    <p style={ps.desc}>{item.description}</p>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Lightbox ── */}
+      {lightbox !== null && (() => {
+        const flat    = allImages[currentFlat];
+        const item    = items[lightbox.itemIdx];
+        const images  = getImages(item);
+        const total   = allImages.length;
+        return (
+          <div style={ps.overlay} onClick={() => setLightbox(null)}>
+            <div style={ps.lightbox} onClick={e => e.stopPropagation()}>
+              {/* Close */}
+              <button style={ps.closeBtn} onClick={() => setLightbox(null)}>✕</button>
+
+              {/* Main image */}
+              <div style={ps.mainImgWrap}>
+                <img src={flat.url} alt={flat.title} style={ps.mainImg} />
+              </div>
+
+              {/* Prev / Next */}
+              {total > 1 && (
+                <>
+                  <button style={{ ...ps.navBtn, left: 12 }} onClick={() => goTo(-1)}>‹</button>
+                  <button style={{ ...ps.navBtn, right: 12 }} onClick={() => goTo(1)}>›</button>
+                </>
+              )}
+
+              {/* Caption */}
+              <div style={ps.caption}>
+                <div style={ps.captionTitle}>
+                  {item.title}
+                  {item.url && (
+                    <a href={item.url} target="_blank" rel="noreferrer" style={ps.captionLink}>🔗 Visit project</a>
+                  )}
+                </div>
+                {item.description && <p style={ps.captionDesc}>{item.description}</p>}
+                <p style={ps.captionCount}>{currentFlat + 1} / {total}</p>
+              </div>
+
+              {/* Thumbnail strip */}
+              {total > 1 && (
+                <div style={ps.lbThumbs}>
+                  {allImages.map((img, idx) => (
+                    <div key={idx}
+                      style={{ ...ps.lbThumb, ...(idx === currentFlat ? ps.lbThumbActive : {}) }}
+                      onClick={() => setLightbox({ itemIdx: img.itemIdx, imgIdx: img.imgIdx })}>
+                      <img src={img.url} alt="" style={ps.lbThumbImg} />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+    </>
+  );
+}
+
 export default function ViewProfile() {
+  usePageTitle('My profile');
   const { user: authUser, isBusiness, isProfessional, isAdmin, isManager } = useAuth();
   const navigate = useNavigate();
   const isStaff  = isAdmin || isManager;
@@ -144,15 +300,7 @@ export default function ViewProfile() {
 
           {/* Portfolio */}
           {isPro && user.professionalProfile?.portfolio?.length > 0 && (
-            <div style={s.card}>
-              <h2 style={s.cardTitle}>Portfolio</h2>
-              {user.professionalProfile.portfolio.map((p, i) => (
-                <div key={i} style={s.portfolioItem}>
-                  <a href={p.url} target="_blank" rel="noreferrer" style={s.portfolioTitle}>{p.title}</a>
-                  {p.description && <p style={{ fontSize: 13, color: '#6b7280', marginTop: 4 }}>{p.description}</p>}
-                </div>
-              ))}
-            </div>
+            <PortfolioSection items={user.professionalProfile.portfolio} />
           )}
 
           {/* Certifications */}
@@ -278,4 +426,52 @@ const s = {
   actionBtn:     { display: 'block', background: '#2563eb', color: '#fff', padding: '11px 16px', borderRadius: 8, fontSize: 14, fontWeight: 500, textAlign: 'center', textDecoration: 'none' },
   statRow:       { display: 'flex', justifyContent: 'space-between', fontSize: 13, padding: '6px 0', borderBottom: '1px solid #f9fafb' },
   addPhone:      { padding: '8px 0' },
+};
+
+// ── Portfolio styles (separate object so PortfolioSection can use them) ──────
+const ps = {
+  card:           { background: '#fff', borderRadius: 12, border: '1px solid #e5e7eb', padding: 24, marginBottom: 20 },
+  header:         { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, paddingBottom: 16, borderBottom: '1px solid #f3f4f6' },
+  cardTitle:      { fontSize: 16, fontWeight: 600, margin: 0 },
+  count:          { fontSize: 12, color: '#9ca3af', background: '#f3f4f6', padding: '3px 10px', borderRadius: 20 },
+  grid:           { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20 },
+  projectCard:    { border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden', background: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,.05)', display: 'flex', flexDirection: 'column' },
+  coverWrap:      { position: 'relative', height: 220, cursor: 'pointer', overflow: 'hidden', background: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  coverImg:       { width: '100%', height: '100%', objectFit: 'contain', padding: 8, transition: 'transform .25s ease' },
+  coverPlaceholder:{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  coverOverlay:   { position: 'absolute', inset: 0, background: 'rgba(0,0,0,0)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .2s' },
+  viewLabel:      { color: '#fff', fontSize: 13, fontWeight: 600, background: 'rgba(0,0,0,.5)', padding: '7px 18px', borderRadius: 20 },
+  imageBadge:     { position: 'absolute', top: 10, right: 10, background: 'rgba(0,0,0,.5)', color: '#fff', fontSize: 11, fontWeight: 600, padding: '3px 9px', borderRadius: 20 },
+  thumbStrip:     { display: 'flex', gap: 4, padding: '8px 12px 0' },
+  thumbWrap:      { position: 'relative', width: 48, height: 48, borderRadius: 6, overflow: 'hidden', cursor: 'pointer', flexShrink: 0, border: '1.5px solid #e5e7eb' },
+  thumb:          { width: '100%', height: '100%', objectFit: 'contain', background: '#1e293b' },
+  thumbMore:      { position: 'absolute', inset: 0, background: 'rgba(0,0,0,.6)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700 },
+  info:           { padding: '16px 18px 20px', display: 'flex', flexDirection: 'column', gap: 10, flex: 1 },
+  titleRow:       { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 },
+  projectTitle:   { fontSize: 15, fontWeight: 700, color: '#0f172a', lineHeight: 1.4, margin: 0 },
+  linkBtn:        { fontSize: 12, color: '#2563eb', textDecoration: 'none', fontWeight: 600, background: '#eff6ff', padding: '4px 10px', borderRadius: 20, whiteSpace: 'nowrap', flexShrink: 0 },
+  desc:           { fontSize: 13, color: '#64748b', lineHeight: 1.7, margin: 0 },
+  divider:        { height: 1, background: '#f1f5f9', margin: '2px 0' },
+  imgCount:       { fontSize: 11, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 4 },
+  // ── Lightbox ──
+  overlay:        { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,.92)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px 24px' },
+  lightbox:       { position: 'relative', width: '90vw', maxWidth: 800, display: 'flex', flexDirection: 'column', gap: 12 },
+  closeBtn:       { position: 'absolute', top: -46, right: 0, background: 'rgba(255,255,255,.1)', border: '1px solid rgba(255,255,255,.15)', color: '#fff', fontSize: 16, cursor: 'pointer', width: 34, height: 34, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 },
+  // Top bar
+  lbTop:          { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '0 2px' },
+  lbTitle:        { fontSize: 15, fontWeight: 600, color: '#f1f5f9', lineHeight: 1.4, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  lbTopRight:     { display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 },
+  lbVisitBtn:     { fontSize: 12, color: '#93c5fd', textDecoration: 'none', fontWeight: 500, border: '1px solid rgba(147,197,253,.3)', padding: '4px 12px', borderRadius: 20, whiteSpace: 'nowrap' },
+  lbCounter:      { fontSize: 12, color: '#475569', whiteSpace: 'nowrap' },
+  // Image frame
+  frameWrap:      { position: 'relative', background: '#0f172a', borderRadius: 10, width: '100%', height: 420, flexShrink: 0, border: '1px solid rgba(255,255,255,.08)', overflow: 'hidden' },
+  frameImg:       { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'contain', display: 'block', padding: 16, boxSizing: 'border-box' },
+  navBtn:         { position: 'absolute', top: '50%', transform: 'translateY(-50%)', background: '#2563eb', border: 'none', color: '#fff', fontSize: 22, fontWeight: 700, width: 44, height: 44, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10, lineHeight: 1, boxShadow: '0 2px 8px rgba(0,0,0,.4)' },
+  // Description
+  lbDesc:         { fontSize: 13, color: '#94a3b8', lineHeight: 1.65, margin: 0, padding: '0 2px' },
+  // Thumbnail strip
+  lbThumbs:       { display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2, paddingTop: 2 },
+  lbThumb:        { width: 54, height: 54, borderRadius: 7, overflow: 'hidden', cursor: 'pointer', flexShrink: 0, border: '2px solid transparent', opacity: 0.5, transition: 'opacity .15s, border-color .15s' },
+  lbThumbActive:  { borderColor: '#60a5fa', opacity: 1 },
+  lbThumbImg:     { width: '100%', height: '100%', objectFit: 'contain', background: '#1e293b' },
 };
