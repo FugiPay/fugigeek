@@ -64,12 +64,19 @@ const updateProfile = asyncHandler(async (req, res) => {
 // @PUT /api/auth/updatepassword
 const updatePassword = asyncHandler(async (req, res) => {
   const { currentPassword, newPassword } = req.body;
+  if (!currentPassword || !newPassword) {
+    res.status(400); throw new Error('Current password and new password are required');
+  }
+  if (newPassword.length < 8) {
+    res.status(400); throw new Error('New password must be at least 8 characters');
+  }
   const user = await User.findById(req.user._id).select('+password');
   if (!(await user.matchPassword(currentPassword))) {
     res.status(401); throw new Error('Current password is incorrect');
   }
   user.password = newPassword;
   await user.save();
+  // Return new token so client stays logged in
   sendToken(user, 200, res);
 });
 
