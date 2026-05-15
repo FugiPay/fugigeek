@@ -261,25 +261,34 @@ const getCategories = asyncHandler(async (req, res) => {
 
 // ── @POST /api/admin/categories ──────────────────────────────────────────────
 const createCategory = asyncHandler(async (req, res) => {
-  const { name, icon, description, order } = req.body;
+  const { name, icon, iconImg, iconKey, description, order } = req.body;
   if (!name) { res.status(400); throw new Error('Category name is required'); }
 
   const existing = await Category.findOne({ name: name.trim() });
   if (existing) { res.status(400); throw new Error('Category already exists'); }
 
-  const category = await Category.create({ name: name.trim(), icon, description, order: order || 0 });
+  const category = await Category.create({
+    name:        name.trim(),
+    icon:        icon || '📁',
+    iconImg:     iconImg || '',
+    iconKey:     iconKey || '',
+    description: description || '',
+    order:       order || 0,
+  });
   res.status(201).json({ success: true, category });
 });
 
 // ── @PUT /api/admin/categories/:id ───────────────────────────────────────────
 const updateCategory = asyncHandler(async (req, res) => {
-  const { name, icon, description, isActive, order } = req.body;
+  const { name, icon, iconImg, iconKey, description, isActive, order } = req.body;
   const updates = {};
   if (name        !== undefined) updates.name        = name.trim();
   if (icon        !== undefined) updates.icon        = icon;
+  if (iconImg     !== undefined) updates.iconImg     = iconImg;
+  if (iconKey     !== undefined) updates.iconKey     = iconKey;
   if (description !== undefined) updates.description = description;
   if (isActive    !== undefined) updates.isActive    = isActive;
-  if (order       !== undefined) updates.order       = order;
+  if (order       !== undefined) updates.order       = Number(order);
 
   const category = await Category.findByIdAndUpdate(
     req.params.id,

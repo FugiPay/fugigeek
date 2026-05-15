@@ -1,11 +1,18 @@
 import { usePageTitle } from '../hooks/usePageTitle';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import adminAPI  from '../api/admin';
 import uploadAPI from '../api/upload';
 import { useAuth } from '../hooks/useAuth';
 import Sidebar from '../components/common/Sidebar';
+
+const HASH_TO_TAB = {
+  '#users':      'Users',
+  '#tasks':      'Tasks',
+  '#orders':     'Orders',
+  '#categories': 'Categories',
+};
 
 const TABS = ['Overview', 'Users', 'Tasks', 'Orders', 'Categories'];
 
@@ -13,7 +20,15 @@ export default function AdminDashboard() {
   usePageTitle('Admin dashboard');
   const { user, isAdmin, isManager } = useAuth();
   const qc       = useQueryClient();
-  const [tab,         setTab]         = useState('Overview');
+  const location = useLocation();
+  const [tab, setTab] = useState(HASH_TO_TAB[location.hash] || 'Overview');
+
+  // Sync tab when Sidebar hash links are clicked
+  useEffect(() => {
+    const t = HASH_TO_TAB[location.hash];
+    if (t) setTab(t);
+    else if (!location.hash) setTab('Overview');
+  }, [location.hash]);
   const [userSearch,  setUserSearch]  = useState('');
   const [userRole,    setUserRole]    = useState('');
   const [taskStatus,  setTaskStatus]  = useState('');
@@ -23,10 +38,15 @@ export default function AdminDashboard() {
   const [newAdmin,    setNewAdmin]    = useState({ name: '', email: '', password: '' });
   const [adminMsg,    setAdminMsg]    = useState('');
   const [catForm,     setCatForm]     = useState({ name: '', icon: '', description: '', order: '' });
-  const [catIconImg,  setCatIconImg]  = useState('');   // uploaded icon URL
-  const [catIconKey,  setCatIconKey]  = useState('');   // uploaded icon S3 key
+  const [catIconImg,  setCatIconImg]  = useState('');
+  const [catIconKey,  setCatIconKey]  = useState('');
   const [catIconUploading, setCatIconUploading] = useState(false);
   const catIconInputRef = React.useRef(null);
+  const [editCat,     setEditCat]     = useState(null); // category being edited
+  const [editIconImg, setEditIconImg] = useState('');
+  const [editIconKey, setEditIconKey] = useState('');
+  const [editIconUploading, setEditIconUploading] = useState(false);
+  const editIconInputRef = React.useRef(null);
 
   const { data: statsData  } = useQuery('adminStats',  () => adminAPI.getStats().then(r => r.data.stats), { enabled: tab === 'Overview' });
   const { data: usersData  } = useQuery(['adminUsers',  userSearch, userRole],  () => adminAPI.getUsers({ search: userSearch, role: userRole || undefined }).then(r => r.data), { enabled: tab === 'Users' });
@@ -76,8 +96,15 @@ export default function AdminDashboard() {
         {/* Tabs */}
         <div style={s.tabs}>
           {TABS.map(t => (
-            <button key={t} style={{ ...s.tab, ...(tab === t ? s.tabActive : {}) }}
-              onClick={() => setTab(t)}>{t}</button>
+            <button key={t}
+              style={{ ...s.tab, ...(tab === t ? s.tabActive : {}) }}
+              onClick={() => {
+                const hashMap = { Users: '#users', Tasks: '#tasks', Orders: '#orders', Categories: '#categories' };
+                window.location.hash = hashMap[t] || '';
+                setTab(t);
+              }}>
+              {t}
+            </button>
           ))}
         </div>
 
@@ -295,56 +322,41 @@ export default function AdminDashboard() {
             {/* Add new category */}
             <div style={s.card}>
               <h2 style={s.cardTitle}>Add Category</h2>
-              <div style={s.formRow}>
+              <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end' }}>
 
-                {/* Icon — emoji OR uploaded image */}
+                {/* Icon picker */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   <span style={{ fontSize: 12, fontWeight: 500, color: '#374151' }}>Icon</span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    {/* Preview */}
-                    <div style={{ width: 48, height: 48, borderRadius: 10, background: '#f3f4f6', border: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
+                    <div style={s.iconPreview}>
                       {catIconImg
-                        ? <img src={catIconImg} alt="icon" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ? <img src={catIconImg} alt="icon" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                         : <span style={{ fontSize: 24 }}>{catForm.icon || '📁'}</span>
                       }
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                      {/* Emoji input */}
-                      <input
-                        style={{ ...s.input, width: 100, fontSize: 18 }}
-                        placeholder="Emoji 💻"
-                        value={catForm.icon}
-                        onChange={e => { setCatForm(p => ({ ...p, icon: e.target.value })); setCatIconImg(''); setCatIconKey(''); }}
-                        disabled={!!catIconImg}
-                      />
-                      {/* OR upload image */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <input style={{ ...s.input, width: 90, fontSize: 18 }} placeholder="Emoji"
+                        value={catForm.icon} disabled={!!catIconImg}
+                        onChange={e => { setCatForm(p => ({ ...p, icon: e.target.value })); setCatIconImg(''); setCatIconKey(''); }} />
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                         <span style={{ fontSize: 11, color: '#9ca3af' }}>or</span>
-                        <button type="button"
-                          style={{ padding: '4px 10px', fontSize: 12, background: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: 6, cursor: 'pointer', color: '#374151' }}
-                          onClick={() => catIconInputRef.current?.click()}
-                          disabled={catIconUploading}>
-                          {catIconUploading ? 'Uploading…' : '📁 Upload image'}
+                        <button type="button" style={s.uploadIconBtn}
+                          onClick={() => catIconInputRef.current?.click()} disabled={catIconUploading}>
+                          {catIconUploading ? 'Uploading…' : '📷 Image'}
                         </button>
                         {catIconImg && (
-                          <button type="button"
-                            style={{ padding: '4px 8px', fontSize: 11, background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 6, cursor: 'pointer', color: '#dc2626' }}
-                            onClick={() => { setCatIconImg(''); setCatIconKey(''); }}>
-                            ✕
-                          </button>
+                          <button type="button" style={s.removeIconBtn}
+                            onClick={() => { setCatIconImg(''); setCatIconKey(''); }}>✕</button>
                         )}
-                        <input ref={catIconInputRef} type="file" accept="image/*"
-                          style={{ display: 'none' }}
+                        <input ref={catIconInputRef} type="file" accept="image/*" style={{ display: 'none' }}
                           onChange={async e => {
-                            const file = e.target.files?.[0];
-                            if (!file) return;
+                            const file = e.target.files?.[0]; if (!file) return;
                             setCatIconUploading(true);
                             try {
                               const { data } = await uploadAPI.portfolioImage(file);
-                              setCatIconImg(data.url);
-                              setCatIconKey(data.key);
+                              setCatIconImg(data.url); setCatIconKey(data.key);
                               setCatForm(p => ({ ...p, icon: '' }));
-                            } catch { alert('Image upload failed'); }
+                            } catch { alert('Upload failed'); }
                             finally { setCatIconUploading(false); e.target.value = ''; }
                           }} />
                       </div>
@@ -352,40 +364,33 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                <input style={s.input} placeholder="Category name *"
-                  value={catForm.name}
-                  onChange={e => setCatForm(p => ({ ...p, name: e.target.value }))} />
-
-                <input style={s.input} placeholder="Description (optional)"
-                  value={catForm.description}
-                  onChange={e => setCatForm(p => ({ ...p, description: e.target.value }))} />
-
-                <input style={{ ...s.input, maxWidth: 80 }} placeholder="Order" type="number"
-                  value={catForm.order}
-                  onChange={e => setCatForm(p => ({ ...p, order: e.target.value }))} />
-
+                <div style={{ flex: 1, minWidth: 160 }}>
+                  <label style={s.fieldLabel}>Name *</label>
+                  <input style={s.input} placeholder="e.g. Web Development"
+                    value={catForm.name} onChange={e => setCatForm(p => ({ ...p, name: e.target.value }))} />
+                </div>
+                <div style={{ flex: 2, minWidth: 200 }}>
+                  <label style={s.fieldLabel}>Description</label>
+                  <input style={s.input} placeholder="Short description (optional)"
+                    value={catForm.description} onChange={e => setCatForm(p => ({ ...p, description: e.target.value }))} />
+                </div>
+                <div style={{ width: 80 }}>
+                  <label style={s.fieldLabel}>Order</label>
+                  <input style={s.input} type="number" placeholder="0"
+                    value={catForm.order} onChange={e => setCatForm(p => ({ ...p, order: e.target.value }))} />
+                </div>
                 <button style={s.btn} onClick={() => {
                   if (!catForm.name.trim()) return;
-                  const payload = {
-                    name:        catForm.name.trim(),
-                    icon:        catIconImg || catForm.icon || '📁',
-                    iconImg:     catIconImg || '',
-                    iconKey:     catIconKey || '',
-                    description: catForm.description.trim(),
-                    order:       Number(catForm.order) || 0,
-                  };
-                  adminAPI.createCategory(payload)
-                    .then(() => {
-                      qc.invalidateQueries('adminCats');
-                      qc.invalidateQueries('categories');
-                      setCatForm({ name: '', icon: '', description: '', order: '' });
-                      setCatIconImg('');
-                      setCatIconKey('');
-                    })
-                    .catch(err => alert(err.response?.data?.message || 'Failed to create category'));
-                }}>
-                  Add
-                </button>
+                  adminAPI.createCategory({
+                    name: catForm.name.trim(), icon: catForm.icon || '📁',
+                    iconImg: catIconImg || '', iconKey: catIconKey || '',
+                    description: catForm.description.trim(), order: Number(catForm.order) || 0,
+                  }).then(() => {
+                    qc.invalidateQueries('adminCats'); qc.invalidateQueries('categories');
+                    setCatForm({ name: '', icon: '', description: '', order: '' });
+                    setCatIconImg(''); setCatIconKey('');
+                  }).catch(err => alert(err.response?.data?.message || 'Failed'));
+                }}>Add</button>
               </div>
             </div>
 
@@ -399,54 +404,67 @@ export default function AdminDashboard() {
               </h2>
               <table style={s.table}>
                 <thead>
-                  <tr>{['Icon', 'Name', 'Tasks', 'Status', 'Order', 'Actions'].map(h => (
+                  <tr>{['Icon', 'Name', 'Description', 'Tasks', 'Order', 'Status', 'Actions'].map(h => (
                     <th key={h} style={s.th}>{h}</th>
                   ))}</tr>
                 </thead>
                 <tbody>
                   {catsData?.categories?.map(cat => (
                     <tr key={cat._id} style={s.tr}>
-                      <td style={{ ...s.td }}>
-                        <div style={{ width: 36, height: 36, borderRadius: 8, background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                      <td style={s.td}>
+                        <div style={s.iconPreview}>
                           {cat.iconImg
-                            ? <img src={cat.iconImg} alt={cat.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            ? <img src={cat.iconImg} alt={cat.name} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 4 }} />
                             : <span style={{ fontSize: 20 }}>{cat.icon}</span>
                           }
                         </div>
                       </td>
                       <td style={s.td}><strong>{cat.name}</strong></td>
+                      <td style={{ ...s.td, color: '#6b7280', maxWidth: 200 }}>{cat.description || '—'}</td>
                       <td style={s.td}>{cat.taskCount || 0}</td>
+                      <td style={s.td}>
+                        {/* Inline order edit */}
+                        <input type="number" defaultValue={cat.order}
+                          style={{ ...s.input, width: 60, padding: '4px 8px', fontSize: 13 }}
+                          onBlur={e => {
+                            const newOrder = Number(e.target.value);
+                            if (newOrder !== cat.order) {
+                              adminAPI.updateCategory(cat._id, { order: newOrder })
+                                .then(() => { qc.invalidateQueries('adminCats'); qc.invalidateQueries('categories'); })
+                                .catch(() => {});
+                            }
+                          }} />
+                      </td>
                       <td style={s.td}>
                         <span style={{ ...s.badge, background: cat.isActive ? '#dcfce7' : '#fee2e2', color: cat.isActive ? '#15803d' : '#b91c1c' }}>
                           {cat.isActive ? 'Active' : 'Inactive'}
                         </span>
                       </td>
-                      <td style={s.td}>{cat.order}</td>
                       <td style={s.td}>
-                        <div style={{ display: 'flex', gap: 8 }}>
-                          <button style={s.actionBtn}
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                          <button style={{ ...s.actionBtn, color: '#2563eb' }}
                             onClick={() => {
-                              adminAPI.updateCategory(cat._id, { isActive: !cat.isActive })
-                                .then(() => { qc.invalidateQueries('adminCats'); qc.invalidateQueries('categories'); });
+                              setEditCat({ ...cat });
+                              setEditIconImg(cat.iconImg || '');
+                              setEditIconKey(cat.iconKey || '');
                             }}>
+                            ✏️ Edit
+                          </button>
+                          <button style={s.actionBtn}
+                            onClick={() => adminAPI.updateCategory(cat._id, { isActive: !cat.isActive })
+                              .then(() => { qc.invalidateQueries('adminCats'); qc.invalidateQueries('categories'); })}>
                             {cat.isActive ? 'Deactivate' : 'Activate'}
                           </button>
                           {isAdmin && (
-                            <button
-                              style={{ ...s.actionBtn, background: '#fef2f2', color: '#dc2626' }}
+                            <button style={{ ...s.actionBtn, background: '#fef2f2', color: '#dc2626' }}
                               onClick={() => {
-                                if (cat.taskCount > 0) {
-                                  alert(`Cannot delete — ${cat.taskCount} task(s) use this category. Deactivate it instead.`);
-                                  return;
-                                }
+                                if (cat.taskCount > 0) { alert(`Cannot delete — ${cat.taskCount} task(s) use this category.`); return; }
                                 if (window.confirm(`Delete "${cat.name}"?`)) {
                                   adminAPI.deleteCategory(cat._id)
                                     .then(() => { qc.invalidateQueries('adminCats'); qc.invalidateQueries('categories'); })
-                                    .catch(err => alert(err.response?.data?.message || 'Failed to delete'));
+                                    .catch(err => alert(err.response?.data?.message || 'Failed'));
                                 }
-                              }}>
-                              Delete
-                            </button>
+                              }}>Delete</button>
                           )}
                         </div>
                       </td>
@@ -454,7 +472,91 @@ export default function AdminDashboard() {
                   ))}
                 </tbody>
               </table>
-              {(!catsData?.categories?.length) && <div style={s.empty}>No categories yet. Add one above or run the seed script.</div>}
+              {!catsData?.categories?.length && <div style={s.empty}>No categories yet.</div>}
+            </div>
+          </div>
+        )}
+
+        {/* ── Edit Category Modal ── */}
+        {editCat && (
+          <div style={s.overlay} onClick={e => { if (e.target === e.currentTarget) setEditCat(null); }}>
+            <div style={{ ...s.modal, maxWidth: 540 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                <h2 style={s.cardTitle}>Edit Category</h2>
+                <button style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#6b7280' }}
+                  onClick={() => setEditCat(null)}>✕</button>
+              </div>
+
+              {/* Icon */}
+              <label style={s.fieldLabel}>Icon</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                <div style={s.iconPreview}>
+                  {editIconImg
+                    ? <img src={editIconImg} alt="icon" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 4 }} />
+                    : <span style={{ fontSize: 24 }}>{editCat.icon || '📁'}</span>
+                  }
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <input style={{ ...s.input, width: 100, fontSize: 18 }} placeholder="Emoji"
+                    value={editCat.icon} disabled={!!editIconImg}
+                    onChange={e => { setEditCat(p => ({ ...p, icon: e.target.value })); setEditIconImg(''); setEditIconKey(''); }} />
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <button type="button" style={s.uploadIconBtn}
+                      onClick={() => editIconInputRef.current?.click()} disabled={editIconUploading}>
+                      {editIconUploading ? 'Uploading…' : '📷 Upload image'}
+                    </button>
+                    {editIconImg && (
+                      <button type="button" style={s.removeIconBtn}
+                        onClick={() => { setEditIconImg(''); setEditIconKey(''); }}>✕ Remove</button>
+                    )}
+                    <input ref={editIconInputRef} type="file" accept="image/*" style={{ display: 'none' }}
+                      onChange={async e => {
+                        const file = e.target.files?.[0]; if (!file) return;
+                        setEditIconUploading(true);
+                        try {
+                          const { data } = await uploadAPI.portfolioImage(file);
+                          setEditIconImg(data.url); setEditIconKey(data.key);
+                          setEditCat(p => ({ ...p, icon: '' }));
+                        } catch { alert('Upload failed'); }
+                        finally { setEditIconUploading(false); e.target.value = ''; }
+                      }} />
+                  </div>
+                </div>
+              </div>
+
+              <label style={s.fieldLabel}>Name *</label>
+              <input style={{ ...s.input, marginBottom: 12 }} value={editCat.name}
+                onChange={e => setEditCat(p => ({ ...p, name: e.target.value }))} />
+
+              <label style={s.fieldLabel}>Description</label>
+              <input style={{ ...s.input, marginBottom: 12 }} value={editCat.description || ''}
+                onChange={e => setEditCat(p => ({ ...p, description: e.target.value }))}
+                placeholder="Short description (optional)" />
+
+              <label style={s.fieldLabel}>Display order</label>
+              <input style={{ ...s.input, marginBottom: 20, maxWidth: 100 }} type="number"
+                value={editCat.order ?? 0}
+                onChange={e => setEditCat(p => ({ ...p, order: e.target.value }))} />
+
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button style={s.btn} onClick={() => {
+                  if (!editCat.name.trim()) return;
+                  adminAPI.updateCategory(editCat._id, {
+                    name:        editCat.name.trim(),
+                    icon:        editCat.icon || '📁',
+                    iconImg:     editIconImg,
+                    iconKey:     editIconKey,
+                    description: editCat.description || '',
+                    order:       Number(editCat.order) || 0,
+                  }).then(() => {
+                    qc.invalidateQueries('adminCats');
+                    qc.invalidateQueries('categories');
+                    setEditCat(null);
+                  }).catch(err => alert(err.response?.data?.message || 'Failed to update'));
+                }}>Save changes</button>
+                <button style={{ ...s.btn, background: '#f3f4f6', color: '#374151' }}
+                  onClick={() => setEditCat(null)}>Cancel</button>
+              </div>
             </div>
           </div>
         )}
@@ -527,6 +629,10 @@ const styles = {
   badge:      { fontSize: 11, padding: '3px 8px', borderRadius: 12, background: '#f3f4f6', color: '#4b5563' },
   roleBadge:  { fontSize: 11, padding: '3px 8px', borderRadius: 12, fontWeight: 500 },
   actionBtn:  { padding: '5px 12px', border: '1px solid #e5e7eb', borderRadius: 6, fontSize: 12, cursor: 'pointer', background: '#f9fafb', color: '#374151' },
+  iconPreview:  { width: 44, height: 44, borderRadius: 10, background: '#f3f4f6', border: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' },
+  fieldLabel:   { display: 'block', fontSize: 12, fontWeight: 500, color: '#374151', marginBottom: 4 },
+  uploadIconBtn:{ padding: '4px 10px', fontSize: 12, background: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: 6, cursor: 'pointer', color: '#374151' },
+  removeIconBtn:{ padding: '4px 8px', fontSize: 11, background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 6, cursor: 'pointer', color: '#dc2626' },
   empty:      { textAlign: 'center', padding: '32px 0', color: '#9ca3af', fontSize: 14 },
   successMsg: { background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0', borderRadius: 8, padding: '10px 14px', fontSize: 14, marginBottom: 14 },
   catGrid:    { display: 'flex', flexDirection: 'column', gap: 8 },
