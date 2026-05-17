@@ -2,7 +2,6 @@ import { usePageTitle } from '../hooks/usePageTitle';
 import { Link } from 'react-router-dom';
 import { useQuery } from 'react-query';
 import { useAuth } from '../hooks/useAuth';
-import Footer from '../components/common/Footer';
 import api from '../api/axios';
 import { useCategories } from '../hooks/useCategories';
 
@@ -107,7 +106,10 @@ export default function Home() {
           <div style={s.catGrid}>
             {CATEGORIES.map(c => (
               <Link key={c.name} to={`/listings?category=${encodeURIComponent(c.name)}`} style={s.catCard}>
-                <span style={{ fontSize: 32 }}>{c.icon}</span>
+                {c.iconImg
+                  ? <img src={c.iconImg} alt={c.name} style={{ width: 40, height: 40, objectFit: 'contain' }} />
+                  : <span style={{ fontSize: 32 }}>{c.icon}</span>
+                }
                 <span style={{ fontSize: 14, fontWeight: 500 }}>{c.name}</span>
               </Link>
             ))}
@@ -151,7 +153,7 @@ export default function Home() {
         </div>
       </section>
 
-      <Footer />
+      
     </div>
   );
 }

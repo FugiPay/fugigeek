@@ -1,7 +1,24 @@
 import { createSlice } from '@reduxjs/toolkit';
 
-const user  = JSON.parse(localStorage.getItem('tb_user')  || 'null');
-const token = localStorage.getItem('tb_token') || null;
+// Safari can store/return the literal string "undefined" — guard against it
+const safeParseUser = () => {
+  try {
+    const raw = localStorage.getItem('tb_user');
+    if (!raw || raw === 'undefined' || raw === 'null') return null;
+    return JSON.parse(raw);
+  } catch { return null; }
+};
+
+const safeGetToken = () => {
+  try {
+    const raw = localStorage.getItem('tb_token');
+    if (!raw || raw === 'undefined') return null;
+    return raw;
+  } catch { return null; }
+};
+
+const user  = safeParseUser();
+const token = safeGetToken();
 
 const authSlice = createSlice({
   name: 'auth',

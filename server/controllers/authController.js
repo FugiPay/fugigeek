@@ -26,7 +26,10 @@ const register = asyncHandler(async (req, res) => {
   if (role === 'professional' && professionalProfile)          userData.professionalProfile = professionalProfile;
 
   const user = await User.create(userData);
-  email.sendWelcome(user.email, { name: user.name, role: user.role });
+  // Send welcome email — non-blocking, never fails the registration
+  email.sendWelcome(user.email, { name: user.name, role: user.role }).catch(err =>
+    console.error('Welcome email failed:', err.message)
+  );
   sendToken(user, 201, res);
 });
 

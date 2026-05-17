@@ -1,5 +1,12 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* Safari flex gap polyfill — use margin on children as fallback */
+/* Modern Safari (15.4+) supports gap natively, this ensures older ones work */
+@supports not (gap: 1px) {
+  .flex-gap-sm > * + * { margin-left: 8px; }
+  .flex-gap-md > * + * { margin-left: 16px; }
+}
+
 :root {
   --primary:       #2563eb;
   --primary-dark:  #1d4ed8;

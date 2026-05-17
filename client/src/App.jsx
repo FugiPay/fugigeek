@@ -7,6 +7,7 @@ import Login                  from './pages/Login';
 import Register               from './pages/Register';
 import Privacy                from './pages/Privacy';
 import Terms                  from './pages/Terms';
+import Footer                 from './components/common/Footer';
 import ForgotPassword         from './pages/ForgotPassword';
 import ResetPassword          from './pages/ResetPassword';
 import PaymentSuccess         from './pages/PaymentSuccess';
@@ -46,7 +47,10 @@ const RoleRoute = ({ children, roles }) => {
 // ── App ───────────────────────────────────────────────────────────────────────
 export default function App() {
   const location = useLocation();
-  const showNavbar = !SIDEBAR_ROUTES.some(r => location.pathname.startsWith(r));
+  const showNavbar  = !SIDEBAR_ROUTES.some(r => location.pathname.startsWith(r));
+  // Hide footer on dashboard pages (they have the Sidebar) and auth pages
+  const hideFooter  = SIDEBAR_ROUTES.some(r => location.pathname.startsWith(r))
+    || ['/login', '/register', '/forgot-password', '/reset-password'].some(r => location.pathname.startsWith(r));
 
   return (
     <>
@@ -99,6 +103,7 @@ export default function App() {
           </div>
         } />
       </Routes>
+      {!hideFooter && <Footer />}
     </>
   );
 }

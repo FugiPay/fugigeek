@@ -1,3 +1,4 @@
+import { usePageTitle } from '../hooks/usePageTitle';
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery } from 'react-query';
@@ -13,6 +14,7 @@ const statusBadge = s => ({
 }[s] || {});
 
 export default function Listings() {
+  usePageTitle('Browse tasks');
   const { isAuthenticated, isBusiness } = useAuth();
   const { names: categoryNames } = useCategories();
   const CATEGORIES = ['All', ...categoryNames];
@@ -91,7 +93,7 @@ export default function Listings() {
                 <p style={s.cardDesc}>{task.description.slice(0, 120)}…</p>
                 <div style={s.cardMeta}>
                   <span style={s.metaItem}>📁 {task.category}</span>
-                  {task.budgetMax && <span style={s.metaItem}>💰 Up to K${task.budgetMax}</span>}
+                  {task.budgetMax && <span style={s.metaItem}>💰 Up to K{task.budgetMax}</span>}
                   {task.deadline  && <span style={s.metaItem}>📅 {new Date(task.deadline).toLocaleDateString()}</span>}
                 </div>
                 <div style={s.cardFooter}>
@@ -99,7 +101,7 @@ export default function Listings() {
                     <div style={s.bizAvatar}>{task.postedBy?.name?.[0]}</div>
                     <span style={{ fontSize: 13, color: '#6b7280' }}>{task.postedBy?.businessProfile?.companyName || task.postedBy?.name}</span>
                   </div>
-                  <span style={s.proposals}>{task.proposalCount} proposals</span>
+                  <span style={s.proposals}>{task.proposalCount} {task.proposalCount === 1 ? 'proposal' : 'proposals'}</span>
                 </div>
               </Link>
             ))}

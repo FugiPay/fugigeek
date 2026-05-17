@@ -1,6 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
 
-// In a services marketplace the "cart" holds the selected proposal before checkout
 const cartSlice = createSlice({
   name: 'cart',
   initialState: { selectedProposal: null, taskId: null },

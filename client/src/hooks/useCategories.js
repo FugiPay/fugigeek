@@ -24,7 +24,7 @@ export const useCategories = () => {
   const { data, isLoading } = useQuery(
     'categories',
     () => categoriesAPI.getAll().then(r => r.data.categories),
-    { staleTime: 1000 * 60 * 10 } // cache 10 minutes
+    { staleTime: 1000 * 60 } // cache 1 minute — short enough to pick up admin icon changes
   );
 
   const categories = (data && data.length > 0) ? data : FALLBACK;

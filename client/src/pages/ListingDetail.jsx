@@ -83,7 +83,7 @@ export default function ListingDetail() {
             {task.deadline   && <span>📅 Deadline: {new Date(task.deadline).toLocaleDateString()}</span>}
             {task.duration   && <span>⏱ Duration: {task.duration}</span>}
             <span>👁 {task.views} views</span>
-            <span>📬 {task.proposalCount} proposals</span>
+            <span>📬 {task.proposalCount} {task.proposalCount === 1 ? 'proposal' : 'proposals'}</span>
           </div>
 
           {/* Description */}
@@ -170,8 +170,16 @@ export default function ListingDetail() {
 
           {!isAuthenticated && task.status === 'open' && (
             <div style={s.loginPrompt}>
-              <p>Want to work on this task?</p>
-              <Link to="/register" style={s.btn}>Create a professional account</Link>
+              <p style={s.loginPromptText}>Interested in working on this task?</p>
+              <p style={s.loginPromptSub}>Create a free professional account to submit a proposal.</p>
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+                <Link to="/register?role=professional" style={s.loginPromptBtn}>
+                  Create a professional account
+                </Link>
+                <Link to="/login" style={s.loginPromptBtnOutline}>
+                  Sign in
+                </Link>
+              </div>
             </div>
           )}
         </div>
@@ -221,7 +229,7 @@ export default function ListingDetail() {
 
               {task.status !== 'cancelled' && (
                 <Link to={`/listings/${task._id}/proposals`} style={s.mngBtn}>
-                  View proposals ({task.proposalCount})
+                  View {task.proposalCount === 1 ? 'proposal' : 'proposals'} ({task.proposalCount})
                 </Link>
               )}
               {['open', 'in-progress'].includes(task.status) && (
@@ -316,7 +324,11 @@ const s = {
   prefix:      { position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#6b7280', fontSize: 14 },
   textarea:    { width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: 8, fontSize: 14, outline: 'none', resize: 'vertical', fontFamily: 'inherit' },
   btn:         { padding: '12px 24px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, fontSize: 15, fontWeight: 500, cursor: 'pointer' },
-  loginPrompt: { background: '#fff', borderRadius: 12, border: '1px solid #e5e7eb', padding: 24, textAlign: 'center', marginTop: 16 },
+  loginPrompt:         { background: 'linear-gradient(135deg, #eff6ff 0%, #f8faff 100%)', borderRadius: 12, border: '1px solid #bfdbfe', padding: '28px 24px', textAlign: 'center', marginTop: 16 },
+  loginPromptText:     { fontSize: 17, fontWeight: 700, color: '#1e3a5f', marginBottom: 6 },
+  loginPromptSub:      { fontSize: 14, color: '#64748b', marginBottom: 20, lineHeight: 1.6 },
+  loginPromptBtn:      { display: 'inline-block', padding: '12px 24px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer', textDecoration: 'none' },
+  loginPromptBtnOutline:{ display: 'inline-block', padding: '12px 24px', background: '#fff', color: '#2563eb', border: '1.5px solid #2563eb', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer', textDecoration: 'none' },
   sideCard:    { background: '#fff', borderRadius: 12, border: '1px solid #e5e7eb', padding: 20, marginBottom: 16 },
   sideTitle:   { fontSize: 14, fontWeight: 600, marginBottom: 14 },
   bizRow:      { display: 'flex', alignItems: 'center', gap: 10 },

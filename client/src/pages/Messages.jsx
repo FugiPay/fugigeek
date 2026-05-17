@@ -1,13 +1,14 @@
+import { usePageTitle } from '../hooks/usePageTitle';
 import { useState, useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import messagesAPI from '../api/messages';
 import { useAuth } from '../hooks/useAuth';
-import { io } from 'socket.io-client';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const SERVER_URL = import.meta.env.VITE_API_URL || 'https://fugigeek.onrender.com';
 
 export default function Messages() {
+  usePageTitle('Messages');
   const { user } = useAuth();
   const qc = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -16,22 +17,32 @@ export default function Messages() {
   const bottomRef           = useRef(null);
   const socketRef           = useRef(null);
 
-  // ── Socket.io real-time ───────────────────────────────────────────────────
+  // ── Socket.io real-time — lazy import so Safari doesn't crash on load ────
   useEffect(() => {
     const token = localStorage.getItem('tb_token');
-    socketRef.current = io(API_URL, { auth: { token } });
+    if (!token || !user?._id) return;
+    let mounted = true;
 
-    if (user?._id) socketRef.current.emit('join_room', user._id);
+    import('socket.io-client').then(({ io }) => {
+      if (!mounted) return;
+      socketRef.current = io(SERVER_URL, {
+        auth:       { token },
+        transports: ['websocket', 'polling'],
+        timeout:    10000,
+      });
+      socketRef.current.emit('join_room', user._id);
+      socketRef.current.on('new_message', ({ conversationId }) => {
+        qc.invalidateQueries('conversations');
+        if (conversationId === activeConvId) {
+          qc.invalidateQueries(['messages', conversationId]);
+        }
+      });
+    }).catch(() => {});
 
-    socketRef.current.on('new_message', ({ conversationId, message }) => {
-      // Refresh conversations list and active messages
-      qc.invalidateQueries('conversations');
-      if (conversationId === activeConvId) {
-        qc.invalidateQueries(['messages', conversationId]);
-      }
-    });
-
-    return () => socketRef.current?.disconnect();
+    return () => {
+      mounted = false;
+      socketRef.current?.disconnect();
+    };
   }, [user?._id, activeConvId]);
 
   // ── Data fetching ─────────────────────────────────────────────────────────

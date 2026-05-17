@@ -3,9 +3,8 @@ import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import api from '../../api/axios';
 import { useAuth } from '../../hooks/useAuth';
-import { io } from 'socket.io-client';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const SERVER_URL = import.meta.env.VITE_API_URL || 'https://fugigeek.onrender.com';
 
 const ICONS = {
   new_proposal:      '📬',
@@ -34,13 +33,27 @@ export default function NotificationBell() {
   const notifications = data?.notifications || [];
   const unread        = data?.unread || 0;
 
-  // Real-time socket
+  // Real-time socket — lazy import so it doesn't block Safari initial render
   useEffect(() => {
     if (!token || !user?._id) return;
-    const socket = io(API_URL, { auth: { token } });
-    socket.emit('join_room', user._id);
-    socket.on('notification', () => qc.invalidateQueries('notifications'));
-    return () => socket.disconnect();
+    let socket;
+    let mounted = true;
+
+    import('socket.io-client').then(({ io }) => {
+      if (!mounted) return;
+      socket = io(SERVER_URL, {
+        auth:       { token },
+        transports: ['websocket', 'polling'],
+        timeout:    10000,
+      });
+      socket.emit('join_room', user._id);
+      socket.on('notification', () => qc.invalidateQueries('notifications'));
+    }).catch(() => {});
+
+    return () => {
+      mounted = false;
+      socket?.disconnect();
+    };
   }, [token, user?._id]);
 
   // Close on outside click

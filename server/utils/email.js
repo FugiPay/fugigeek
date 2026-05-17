@@ -1,6 +1,15 @@
 const { Resend } = require('resend');
 
-const resend   = new Resend(process.env.RESEND_API_KEY);
+// Lazy init — only create Resend client when actually needed
+// Prevents crash at module load if RESEND_API_KEY is missing
+let _resend = null;
+const getResend = () => {
+  if (!_resend && process.env.RESEND_API_KEY) {
+    _resend = new Resend(process.env.RESEND_API_KEY);
+  }
+  return _resend;
+};
+
 const FROM     = process.env.RESEND_FROM_EMAIL || 'noreply@fugigeek.com';
 const BASE_URL = process.env.CLIENT_URL        || 'https://fugigeek-b7afc.web.app';
 
@@ -11,7 +20,7 @@ const send = async ({ to, subject, html }) => {
     return;
   }
   try {
-    const result = await resend.emails.send({
+    const result = await getResend().emails.send({
       from: `Fugigeek <${FROM}>`,
       to,
       subject,
